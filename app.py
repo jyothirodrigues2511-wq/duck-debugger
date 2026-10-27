@@ -80,27 +80,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Load Gemini API Key silently from .env
+gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+
 # --- Sidebar Configuration ---
 with st.sidebar:
     st.markdown("## 🦆 Duck Debugger")
     st.caption("A Rubber Duck that talks back — strictly Socratic.")
-
-    # API Key Configuration
-    st.markdown("### 🔑 Gemini Configuration")
-    env_key = os.getenv("GEMINI_API_KEY", "")
-    user_api_key = st.text_input(
-        "Gemini API Key",
-        value=env_key,
-        type="password",
-        help="Reads from .env by default. Enter your Google Gemini API Key here."
-    )
-
-    if user_api_key:
-        st.success("✅ Gemini API Key connected!")
-    else:
-        st.warning("⚠️ No Gemini API key detected. Running in Offline Socratic Heuristics mode.")
-
-    st.divider()
 
     st.markdown("### 🎙️ Voice Dictation Tips")
     st.markdown(
@@ -202,7 +188,7 @@ with st.expander("📝 Bug Description & Code Snippet", expanded=not st.session_
                         code_snippet=code_input,
                         bug_description=desc_input,
                         turn_count=0,
-                        api_key=user_api_key
+                        api_key=gemini_api_key
                     )
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -238,7 +224,7 @@ if st.session_state.session_started:
                         code_snippet=st.session_state.code_snippet,
                         bug_description=st.session_state.bug_description,
                         language=st.session_state.language,
-                        api_key=user_api_key
+                        api_key=gemini_api_key
                     )
                     # Persist to SQLite
                     bug_id = db.save_bug(
@@ -299,7 +285,7 @@ if st.session_state.session_started:
                         code_snippet=st.session_state.code_snippet,
                         bug_description=st.session_state.bug_description,
                         turn_count=st.session_state.turn_count,
-                        api_key=user_api_key
+                        api_key=gemini_api_key
                     )
                     st.write(duck_reply)
                     st.session_state.messages.append({"role": "assistant", "content": duck_reply})
