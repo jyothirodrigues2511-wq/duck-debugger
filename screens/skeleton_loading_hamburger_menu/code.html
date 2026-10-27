@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-primary-fixed-variant": "#6a0baa",
+          "on-error": "#690005",
+          "on-tertiary": "#4c007b",
+          "background": "#0a122a",
+          "on-secondary-container": "#d4a5ff",
+          "inverse-surface": "#dbe1ff",
+          "outline-variant": "#4d4353",
+          "primary-container": "#9d4edd",
+          "surface": "#0a122a",
+          "tertiary-container": "#9b53d2",
+          "surface-container-highest": "#2c344d",
+          "error": "#ffb4ab",
+          "surface-dim": "#0a122a",
+          "on-surface-variant": "#d0c2d5",
+          "primary-fixed-dim": "#e0b6ff",
+          "on-tertiary-fixed": "#2e004d",
+          "surface-container": "#171e37",
+          "on-tertiary-fixed-variant": "#691a9f",
+          "error-container": "#93000a",
+          "inverse-on-surface": "#282f49",
+          "surface-container-low": "#131a33",
+          "on-primary": "#4c007d",
+          "on-background": "#dbe1ff",
+          "primary": "#e0b6ff",
+          "inverse-primary": "#8433c4",
+          "on-secondary-fixed-variant": "#680eac",
+          "on-secondary-fixed": "#2d0050",
+          "surface-tint": "#e0b6ff",
+          "on-primary-fixed": "#2e004e",
+          "secondary-fixed": "#f1dbff",
+          "tertiary": "#e1b6ff",
+          "secondary-container": "#6b13af",
+          "outline": "#998d9e",
+          "tertiary-fixed": "#f2daff",
+          "on-surface": "#dbe1ff",
+          "on-secondary": "#4a007f",
+          "surface-container-high": "#212942",
+          "on-error-container": "#ffdad6",
+          "on-primary-container": "#fffdff",
+          "surface-bright": "#313852",
+          "secondary": "deb7ff",
+          "tertiary-fixed-dim": "#e1b6ff",
+          "primary-fixed": "#f2daff",
+          "on-tertiary-container": "#fffdff",
+          "secondary-fixed-dim": "#deb7ff",
+          "surface-container-lowest": "#050d25",
+          "surface-variant": "#2c344d"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin": "1rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "margin-md": "2rem",
+          "gutter": "1rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "margin-lg": "3rem",
+          "gutter-lg": "2rem",
+          "gutter-md": "1.5rem"
+        },
+        "fontFamily": {
+          "code-lg": [
+            "JetBrains Mono"
+          ],
+          "headline-xl": [
+            "Inter"
+          ],
+          "headline-xl-mobile": [
+            "Inter"
+          ],
+          "code-md": [
+            "JetBrains Mono"
+          ],
+          "body-md": [
+            "Inter"
+          ],
+          "headline-md": [
+            "Inter"
+          ],
+          "headline-sm": [
+            "Inter"
+          ],
+          "headline-lg-mobile": [
+            "Inter"
+          ],
+          "headline-lg": [
+            "Inter"
+          ],
+          "label-sm": [
+            "JetBrains Mono"
+          ],
+          "body-lg": [
+            "Inter"
+          ],
+          "label-md": [
+            "JetBrains Mono"
+          ],
+          "body-sm": [
+            "Inter"
+          ]
+        },
+        "fontSize": {
+          "code-lg": [
+            "15px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "500"
+            }
+          ],
+          "headline-xl": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-xl-mobile": [
+            "30px",
+            {
+              "lineHeight": "38px",
+              "fontWeight": "700"
+            }
+          ],
+          "code-md": [
+            "13px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "22px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-sm": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "600"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "fontWeight": "500"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "26px",
+              "fontWeight": "400"
+            }
+          ],
+          "label-md": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "12px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest"><div class="h-16 w-full px-gutter-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Duck Debugger Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkejLzHkcuV4UxXNv9zVHIia-SYl2uq21ullUgEBqeR9fA1SUEWxZKCqUFXDPMdBmd4krj1OFG-Sggj10GU9-Lbmov-md2Gw_lqAVxKFUA09YmxB4ddTSXkTQ9hX5AJxtJvvTGivZs-Ch_8fxJ8EzTavRoZ46b-0KtpRbu0fAisbYB48n2rBv-ljzxuxh5cAjwKnu4fDww32eKC6jOCP8pAV_WC49Tv1NuaDR9TzczPh0e-y55Mz7_kg"/><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Duck Debugger </span><span class="font-label-sm text-label-sm uppercase px-space-sm py-space-xs rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span></div></div><nav class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-xs py-space-xs rounded-xl border border-surface-container-highest" data-active-classes="bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]"><a aria-current="page" class="px-space-md py-space-sm font-body-md transition-colors bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]" data-path="socratic-studio" href="#">Socratic Studio</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="analytics-weak-spots" href="#">Analytics &amp; Weak Spots</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="duck-wisdom-docs" href="#">Duck Wisdom Docs</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="terminal" href="#">Terminal</a></nav><div class="flex items-center gap-space-md shrink-0"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high border border-surface-container-highest"><span class="font-label-md text-label-md text-primary"> 14 Bug Streak</span></div><div class="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low border border-surface-container-highest"><span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span><span class="font-code-md text-code-md text-on-surface-variant"> Ready</span></div><div class="relative flex items-center justify-center"><button aria-label="Notifications" class="p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span></button><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span></div><div class="flex items-center gap-space-sm pl-space-xs border-l border-surface-container-highest"><div class="relative"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIxMlMilh2RHc-sa0aZxRLVh5c0Gm5q3Xo72whV3cbDamFbL-72QCb7RfAzFBJowiUpsA7FHzgtYYgXwmOdjCfMkG5eI5ECh7hjg7HdfVgxPlpcTmwjeyIBQwfxevJa2vwy6peFROJ14cSoWBvUMbM-WN6wDozYOlwF02_BmDPElbqYCDSalJSsh2hagXjEQx3R2uZs5wCAmcZ4fcR2AdkkgbfD4acFA4O_iNuxi0TneWyAGuN36jSqQ"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-2 ring-surface"></span></div></div></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-4rem)]"><div class="flex flex-col w-full">
+<!-- Subtle Gradient Ambient Aura -->
+<div class="relative w-full overflow-hidden px-gutter lg:px-gutter-lg pb-space-xl">
+<div class="absolute -top-32 left-1/4 w-96 h-96 rounded-full bg-primary-container/10 blur-[120px] pointer-events-none"></div>
+<div class="absolute top-1/2 -right-20 w-80 h-80 rounded-full bg-secondary-container/15 blur-[100px] pointer-events-none"></div>
+<!-- Sub-Header Route Breadcrumb & Skeleton Controls Bar -->
+<div class="w-full py-space-md flex flex-wrap items-center justify-between gap-space-md">
+<!-- Left: Hamburger Drawer Toggle Button & Route Indicator -->
+<div class="flex items-center gap-space-md">
+<button aria-label="Open Navigation Drawer" class="group flex items-center justify-center w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface hover:text-primary transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" id="open-drawer-btn" type="button">
+<span class="material-symbols-outlined text-[22px] transition-transform duration-200 group-hover:rotate-6">menu</span>
+</button>
+<div class="flex items-center gap-space-sm font-label-md text-label-md text-on-surface-variant">
+<span class="inline-flex items-center gap-1 text-primary">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+            ROUTE_TRANSITION
+          </span>
+<span class="text-outline">/</span>
+<span class="text-on-surface font-code-md text-code-md" id="route-current-name">socratic-studio.duck</span>
+</div>
+</div>
+<!-- Right: Interactive Mode Controls & Speed Dial -->
+<div class="flex items-center gap-space-sm">
+<div class="hidden sm:flex items-center gap-space-xs bg-surface-container-low px-space-sm py-space-xs rounded-full">
+<span class="w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
+<span class="font-code-md text-code-md text-on-surface-variant" id="sync-latency-label">Hydration: 42ms</span>
+</div>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-xl bg-primary-container text-on-primary-container font-headline-sm text-label-md transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" id="simulate-toggle-btn" type="button">
+<span class="material-symbols-outlined text-[16px]" id="simulate-icon">bolt</span>
+<span id="simulate-label-text">Simulate Loaded State</span>
+</button>
+<button class="flex items-center justify-center w-9 h-9 rounded-xl bg-surface-container-high text-on-surface-variant hover:text-primary transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" id="cycle-route-btn" title="Cycle Next Route View" type="button">
+<span class="material-symbols-outlined text-[18px]">cached</span>
+</button>
+</div>
+</div>
+<!-- Floating Socratic Center Badge (Pulse Loader) -->
+<div class="w-full flex justify-center py-space-xs transition-all duration-300" id="central-sync-badge">
+<div class="flex items-center gap-space-md px-space-lg py-space-sm rounded-full bg-surface-container-high shadow-xl backdrop-blur-xl transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+<div class="relative flex items-center justify-center w-6 h-6">
+<span class="absolute w-full h-full rounded-full bg-primary-container opacity-75 animate-ping"></span>
+<span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<span class="font-label-md text-label-md text-on-surface"> Socratic Engine Syncing...</span>
+<div class="w-24 h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full bg-primary-container rounded-full animate-[shimmer_1.4s_infinite_linear] bg-gradient-to-r from-primary-container via-primary to-primary-container bg-[length:200%_100%]"></div>
+</div>
+</div>
+<span class="font-code-md text-code-md text-primary" id="sync-percentage">78%</span>
+</div>
+</div>
+<!-- MAIN SKELETON / LOADED WORKSPACE CONTAINER -->
+<div class="mt-space-lg flex flex-col gap-space-lg" id="workspace-container">
+<!-- Hero Shimmer Skeleton Header -->
+<section class="skeleton-view w-full p-space-lg rounded-xl bg-surface-container-low shadow-md backdrop-blur-md">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm flex-1">
+<!-- Badge Placeholder -->
+<div class="w-32 h-6 rounded-full bg-surface-container-highest animate-pulse"></div>
+<!-- Title Line Skeleton -->
+<div class="w-3/4 max-w-xl h-9 rounded-lg bg-surface-container-highest animate-pulse"></div>
+<!-- Subtitle Skeleton -->
+<div class="w-1/2 max-w-md h-4 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="flex items-center gap-space-sm shrink-0">
+<div class="w-28 h-10 rounded-xl bg-surface-container-highest animate-pulse"></div>
+<div class="w-36 h-10 rounded-xl bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+</section>
+<!-- Loaded Hero (Hidden in skeleton state) -->
+<section class="loaded-view hidden w-full p-space-lg rounded-xl bg-surface-container shadow-md">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="px-space-sm py-space-xs rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm">Session #SOC-9821</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Live Memory Kernel v6.1</span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Asynchronous Race Condition in Worker Thread</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Active dialectic dialogue isolating non-deterministic mutex locking across async task queues.</p>
+</div>
+<div class="flex items-center gap-space-sm shrink-0">
+<button class="px-space-md py-space-xs rounded-xl bg-surface-container-high text-on-surface font-label-md text-label-md hover:bg-surface-container-highest transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+              Export Trace
+            </button>
+<button class="px-space-md py-space-xs rounded-xl bg-primary-container text-on-primary-container font-label-md text-label-md transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+              Spawn Synthesis
+            </button>
+</div>
+</div>
+</section>
+<!-- 2-COLUMN SPLIT GRID -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- LEFT CARD: Socratic Inquiry & Audio Waveform Skeleton -->
+<div class="lg:col-span-5 flex flex-col gap-space-md">
+<!-- SKELETON STATE LEFT -->
+<div class="skeleton-view p-space-lg rounded-xl bg-surface-container-low shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="w-40 h-5 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-16 h-5 rounded-full bg-surface-container-highest animate-pulse"></div>
+</div>
+<!-- Simulated Audio Waveform Skeleton -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest flex items-center justify-between gap-1.5 h-20">
+<span class="w-1.5 h-6 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-12 rounded-full bg-primary-container/40 animate-pulse"></span>
+<span class="w-1.5 h-8 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-14 rounded-full bg-primary-container/60 animate-pulse"></span>
+<span class="w-1.5 h-4 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-16 rounded-full bg-primary animate-pulse"></span>
+<span class="w-1.5 h-10 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-6 rounded-full bg-primary-container/30 animate-pulse"></span>
+<span class="w-1.5 h-12 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-7 rounded-full bg-primary-container/50 animate-pulse"></span>
+<span class="w-1.5 h-14 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-5 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-10 rounded-full bg-primary animate-pulse"></span>
+<span class="w-1.5 h-8 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-4 rounded-full bg-surface-container-highest animate-pulse"></span>
+<span class="w-1.5 h-12 rounded-full bg-primary-container/50 animate-pulse"></span>
+<span class="w-1.5 h-7 rounded-full bg-surface-container-highest animate-pulse"></span>
+</div>
+<!-- Transcript Conversation Skeleton Strips -->
+<div class="flex flex-col gap-space-sm pt-space-xs">
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest animate-pulse shrink-0"></div>
+<div class="flex-1 flex flex-col gap-space-xs">
+<div class="w-1/3 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-full h-12 rounded-xl bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest animate-pulse shrink-0"></div>
+<div class="flex-1 flex flex-col gap-space-xs">
+<div class="w-1/4 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-5/6 h-10 rounded-xl bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest animate-pulse shrink-0"></div>
+<div class="flex-1 flex flex-col gap-space-xs">
+<div class="w-1/3 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-11/12 h-14 rounded-xl bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+</div>
+<!-- Input area skeleton -->
+<div class="w-full h-12 rounded-xl bg-surface-container-highest animate-pulse mt-space-sm"></div>
+</div>
+<!-- LOADED STATE LEFT -->
+<div class="loaded-view hidden p-space-lg rounded-xl bg-surface-container shadow-md flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-primary text-[20px]">mic</span>
+<span class="font-headline-sm text-headline-sm text-on-surface">Duck Dialogue Feed</span>
+</div>
+<span class="font-label-sm text-label-sm px-space-sm py-space-xs rounded-full bg-primary-container/20 text-primary">Continuous Listening</span>
+</div>
+<!-- Active Audio Waveform Graph (Interactive SVG) -->
+<div class="p-space-md rounded-xl bg-surface-container-lowest flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-code-md text-code-md text-on-surface-variant">
+<span>Vocal Cadence Frequency</span>
+<span class="text-primary">128 kbps OPUS</span>
+</div>
+<svg class="w-full h-14 text-primary" fill="none" viewbox="0 0 300 60">
+<path d="M0 30 Q 15 10, 30 30 T 60 30 T 90 10 T 120 50 T 150 20 T 180 40 T 210 15 T 240 45 T 270 25 T 300 30" stroke="currentColor" stroke-linecap="round" stroke-width="2.5"></path>
+<path d="M0 30 Q 20 25, 40 30 T 80 35 T 120 22 T 160 38 T 200 28 T 240 33 T 280 29 T 300 30" stroke="currentColor" stroke-opacity="0.4" stroke-width="1.5"></path>
+</svg>
+</div>
+<!-- Socratic Duck Dialogue Thread -->
+<div class="flex flex-col gap-space-md">
+<div class="flex items-start gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-sm text-label-md shrink-0"></div>
+<div class="flex flex-col gap-space-xs bg-surface-container-high p-space-md rounded-xl">
+<span class="font-label-sm text-label-sm text-primary">Duck Socratic Advisor</span>
+<p class="font-body-md text-body-md text-on-surface">"Notice how worker #3 releases the mutex before writing to buffer index 4. What would happen if thread #1 re-enters while that condition flag remains unlatched?"</p>
+</div>
+</div>
+<div class="flex items-start gap-space-sm justify-end">
+<div class="flex flex-col gap-space-xs bg-surface-container-highest p-space-md rounded-xl text-right">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Engineer (You)</span>
+<p class="font-body-md text-body-md text-on-surface">"Ah! The latch condition drops early, so thread 1 assumes it owns the pointer segment."</p>
+</div>
+</div>
+</div>
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container-lowest text-on-surface font-body-md text-body-md px-space-md py-space-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-outline" placeholder="Explain your logic aloud or type hypothesis..." type="text"/>
+<button class="absolute right-2 p-1.5 rounded-lg bg-primary-container text-on-primary-container hover:scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined text-[18px]">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- RIGHT CARD: Code Editor Skeleton With File Tabs -->
+<div class="lg:col-span-7 flex flex-col gap-space-md">
+<!-- SKELETON STATE RIGHT -->
+<div class="skeleton-view p-space-lg rounded-xl bg-surface-container-low shadow-md flex flex-col gap-space-md">
+<!-- Simulated File Tabs Skeleton -->
+<div class="flex items-center justify-between border-b-0 pb-space-xs">
+<div class="flex items-center gap-space-xs">
+<div class="w-28 h-7 rounded-lg bg-surface-container-highest animate-pulse"></div>
+<div class="w-24 h-7 rounded-lg bg-surface-container-highest animate-pulse"></div>
+<div class="w-20 h-7 rounded-lg bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="flex items-center gap-space-xs">
+<div class="w-6 h-6 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-6 h-6 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+<!-- Monospace Code Editor Shimmer Canvas -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest flex flex-col gap-3 min-h-[320px]">
+<!-- Code Line 1 -->
+<div class="flex items-center gap-space-md">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-20 h-3 bg-primary-container/50 rounded animate-pulse"></span>
+<span class="w-36 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 2 -->
+<div class="flex items-center gap-space-md pl-6">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-16 h-3 bg-secondary-container/60 rounded animate-pulse"></span>
+<span class="w-52 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+<span class="w-12 h-3 bg-primary-container/40 rounded animate-pulse"></span>
+</div>
+<!-- Code Line 3 -->
+<div class="flex items-center gap-space-md pl-6">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-32 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 4 (Highlight bug skeleton) -->
+<div class="flex items-center gap-space-md pl-12 bg-primary-container/10 p-1 rounded-lg">
+<span class="w-4 h-3 bg-primary rounded animate-pulse"></span>
+<span class="w-24 h-3 bg-primary rounded animate-pulse"></span>
+<span class="w-48 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 5 -->
+<div class="flex items-center gap-space-md pl-12">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-16 h-3 bg-secondary-container/50 rounded animate-pulse"></span>
+<span class="w-40 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 6 -->
+<div class="flex items-center gap-space-md pl-6">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-14 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 7 -->
+<div class="flex items-center gap-space-md">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-12 h-3 bg-primary-container/40 rounded animate-pulse"></span>
+<span class="w-28 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 8 -->
+<div class="flex items-center gap-space-md pl-6">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-44 h-3 bg-surface-container-highest rounded animate-pulse"></span>
+</div>
+<!-- Code Line 9 -->
+<div class="flex items-center gap-space-md pl-6">
+<span class="w-4 h-3 bg-surface-container-highest/60 rounded animate-pulse"></span>
+<span class="w-36 h-3 bg-secondary-container/40 rounded animate-pulse"></span>
+</div>
+</div>
+<!-- Terminal status footer skeleton -->
+<div class="flex items-center justify-between pt-space-xs">
+<div class="w-48 h-4 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-24 h-4 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+</div>
+<!-- LOADED STATE RIGHT -->
+<div class="loaded-view hidden p-space-lg rounded-xl bg-surface-container shadow-md flex flex-col gap-space-md">
+<!-- File Tabs -->
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-highest text-primary font-code-md text-code-md">
+<span class="material-symbols-outlined text-[16px]">data_object</span>
+<span>worker_thread.rs</span>
+<span class="material-symbols-outlined text-[14px] text-on-surface-variant hover:text-on-surface">close</span>
+</button>
+<button class="flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container-high text-on-surface-variant font-code-md text-code-md hover:text-on-surface">
+<span>telemetry.rs</span>
+</button>
+</div>
+<div class="flex items-center gap-space-xs text-on-surface-variant">
+<button class="p-1 rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[18px]">content_copy</span></button>
+<button class="p-1 rounded hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined text-[18px]">unfold_more</span></button>
+</div>
+</div>
+<!-- Active Syntax Editor View -->
+<div class="p-space-lg rounded-xl bg-surface-container-lowest font-code-md text-code-md text-on-surface flex flex-col gap-1.5 overflow-x-auto min-h-[320px]">
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">41</span>
+<span><span class="text-primary">pub async fn</span> <span class="text-secondary-fixed">dispatch_worker</span>(mut state: StateLock) -&gt; Result&lt;()&gt; {</span>
+</div>
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">42</span>
+<span class="pl-4"><span class="text-primary">let</span> guard = state.acquire().<span class="text-tertiary">await</span>;</span>
+</div>
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">43</span>
+<span class="pl-4">drop(guard); <span class="text-outline">// ⚠️ Premature latch release flagged by Duck</span></span>
+</div>
+<div class="flex gap-4 bg-primary-container/20 rounded py-0.5 px-1 -mx-1">
+<span class="text-primary font-bold select-none w-6 text-right">44</span>
+<span class="pl-4 text-on-primary-container"><span class="text-primary-fixed font-semibold">state.write_buffer(payload)</span>; <span class="text-error font-medium">// Critical section compromised</span></span>
+</div>
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">45</span>
+<span class="pl-4">log::info!(<span class="text-tertiary-fixed">"Batch sync finalized: {}"</span>, state.id);</span>
+</div>
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">46</span>
+<span class="pl-4">Ok(())</span>
+</div>
+<div class="flex gap-4">
+<span class="text-outline select-none w-6 text-right">47</span>
+<span>}</span>
+</div>
+</div>
+<!-- Editor Telemetry Status Footer -->
+<div class="flex items-center justify-between text-on-surface-variant font-code-md text-code-md">
+<span class="flex items-center gap-space-xs text-primary"><span class="w-2 h-2 rounded-full bg-primary"></span>Rust Analyzer 2024.1.2</span>
+<span>UTF-8 • LF • Ln 44, Col 12</span>
+</div>
+</div>
+</div>
+</div>
+<!-- BOTTOM METRICS & TELEMETRY WEAK SPOTS SKELETON -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- SKELETON METRICS -->
+<div class="skeleton-view p-space-md rounded-xl bg-surface-container-low shadow-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-24 h-4 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="w-16 h-8 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-3/4 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="skeleton-view p-space-md rounded-xl bg-surface-container-low shadow-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-32 h-4 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="w-20 h-8 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-2/3 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="skeleton-view p-space-md rounded-xl bg-surface-container-low shadow-md flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-28 h-4 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-6 h-6 rounded-full bg-surface-container-highest animate-pulse"></div>
+</div>
+<div class="w-24 h-8 rounded bg-surface-container-highest animate-pulse"></div>
+<div class="w-4/5 h-3 rounded bg-surface-container-highest animate-pulse"></div>
+</div>
+<!-- LOADED METRICS (Hidden during skeleton) -->
+<div class="loaded-view hidden p-space-md rounded-xl bg-surface-container shadow-md flex flex-col gap-space-xs transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+<div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md">
+<span>Hypothesis Confidence</span>
+<span class="material-symbols-outlined text-primary text-[20px]">auto_graph</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-on-surface">94.2%</span>
+<span class="font-body-sm text-body-sm text-primary">+12% from previous dialectic turn</span>
+</div>
+<div class="loaded-view hidden p-space-md rounded-xl bg-surface-container shadow-md flex flex-col gap-space-xs transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+<div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md">
+<span>Blind Spots Isolated</span>
+<span class="material-symbols-outlined text-primary text-[20px]">radar</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-on-surface">3 Detected</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Concurrence, Mutex drop, Lifetime</span>
+</div>
+<div class="loaded-view hidden p-space-md rounded-xl bg-surface-container shadow-md flex flex-col gap-space-xs transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]">
+<div class="flex items-center justify-between text-on-surface-variant font-label-md text-label-md">
+<span>Rubber Duck Clarity Index</span>
+<span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
+</div>
+<span class="font-headline-lg text-headline-lg text-on-surface">A+ Master</span>
+<span class="font-body-sm text-body-sm text-primary">Zero hallucination bounds verified</span>
+</div>
+</section>
+</div>
+</div>
+<!-- INTERACTIVE SLIDING HAMBURGER NAVIGATION DRAWER -->
+<div class="fixed inset-0 z-[60] bg-surface-container-lowest/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="nav-drawer-backdrop"></div>
+<aside class="fixed top-0 left-0 bottom-0 z-[70] w-80 max-w-[85vw] bg-surface-container-low shadow-2xl flex flex-col -translate-x-full transition-transform duration-300 ease-out" id="nav-drawer-panel">
+<!-- Minimalist Drawer Header -->
+<div class="h-16 px-space-lg flex items-center justify-between bg-surface-container">
+<div class="flex items-center gap-space-sm">
+<span class="text-2xl select-none"></span>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight leading-none">Duck Debugger</span>
+<span class="font-label-sm text-label-sm text-primary">Route Navigator</span>
+</div>
+</div>
+<button aria-label="Close Navigation Drawer" class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" id="close-drawer-btn" type="button">
+<span class="material-symbols-outlined text-[22px]">close</span>
+</button>
+</div>
+<!-- Clean Navigation Menu Items (No descriptive bloat) -->
+<div class="flex-1 overflow-y-auto py-space-md px-space-sm flex flex-col gap-space-xs">
+<!-- Nav Item 1: Socratic Studio -->
+<a class="drawer-nav-item group flex items-center justify-between p-space-sm rounded-xl bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" data-route="socratic-studio" href="#">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-on-primary-container/15 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]">psychology</span>
+</div>
+<span class="font-headline-sm text-label-md font-semibold">Socratic Studio</span>
+</div>
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-surface-tint"></span>
+<span class="material-symbols-outlined text-[18px] opacity-70 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+</div>
+</a>
+<!-- Nav Item 2: Analytics & Weak Spots -->
+<a class="drawer-nav-item group flex items-center justify-between p-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" data-route="analytics-weak-spots" href="#">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">query_stats</span>
+</div>
+<span class="font-headline-sm text-label-md font-semibold">Analytics &amp; Weak Spots</span>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</a>
+<!-- Nav Item 3: Duck Wisdom Docs -->
+<a class="drawer-nav-item group flex items-center justify-between p-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" data-route="duck-wisdom-docs" href="#">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">menu_book</span>
+</div>
+<span class="font-headline-sm text-label-md font-semibold">Duck Wisdom Docs</span>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</a>
+<!-- Nav Item 4: Interactive Terminal -->
+<a class="drawer-nav-item group flex items-center justify-between p-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" data-route="terminal" href="#">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+</div>
+<span class="font-headline-sm text-label-md font-semibold">Interactive Terminal</span>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</a>
+<!-- Nav Item 5: Telemetry & Settings -->
+<a class="drawer-nav-item group flex items-center justify-between p-space-sm rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" data-route="settings" href="#">
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 text-primary">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</div>
+<span class="font-headline-sm text-label-md font-semibold">Telemetry &amp; Settings</span>
+</div>
+<span class="material-symbols-outlined text-[18px] opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">chevron_right</span>
+</a>
+</div>
+<!-- Drawer Footer System Card -->
+<div class="p-space-md bg-surface-container mt-auto flex flex-col gap-space-xs">
+<div class="flex items-center justify-between font-label-sm text-label-sm text-on-surface-variant">
+<span>Engine Link</span>
+<span class="text-primary font-semibold">Nominal</span>
+</div>
+<div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="w-full h-full bg-primary-container"></div>
+</div>
+<span class="font-code-md text-code-md text-outline">Duck Kernel 6.1 • Zero Hallucination</span>
+</div>
+</aside>
+<!-- Interactive Logic Script -->
+<script>
+    (function initDuckSkeletonApp() {
+      const openDrawerBtn = document.getElementById('open-drawer-btn');
+      const closeDrawerBtn = document.getElementById('close-drawer-btn');
+      const drawerBackdrop = document.getElementById('nav-drawer-backdrop');
+      const drawerPanel = document.getElementById('nav-drawer-panel');
+      const simulateToggleBtn = document.getElementById('simulate-toggle-btn');
+      const cycleRouteBtn = document.getElementById('cycle-route-btn');
+      const simulateIcon = document.getElementById('simulate-icon');
+      const simulateLabelText = document.getElementById('simulate-label-text');
+      const centralSyncBadge = document.getElementById('central-sync-badge');
+      const syncPercentage = document.getElementById('sync-percentage');
+      const syncLatencyLabel = document.getElementById('sync-latency-label');
+      const routeCurrentName = document.getElementById('route-current-name');
+
+      const skeletonElements = document.querySelectorAll('.skeleton-view');
+      const loadedElements = document.querySelectorAll('.loaded-view');
+      const drawerNavItems = document.querySelectorAll('.drawer-nav-item');
+
+      let isLoaded = false;
+      const routes = [
+        'socratic-studio.duck',
+        'analytics-weak-spots.duck',
+        'duck-wisdom-docs.duck',
+        'terminal.duck'
+      ];
+      let currentRouteIndex = 0;
+
+      // Drawer Open/Close
+      function toggleDrawer(open) {
+        if (open) {
+          drawerBackdrop.classList.remove('pointer-events-none', 'opacity-0');
+          drawerBackdrop.classList.add('opacity-100');
+          drawerPanel.classList.remove('-translate-x-full');
+          drawerPanel.classList.add('translate-x-0');
+        } else {
+          drawerBackdrop.classList.remove('opacity-100');
+          drawerBackdrop.classList.add('opacity-0', 'pointer-events-none');
+          drawerPanel.classList.remove('translate-x-0');
+          drawerPanel.classList.add('-translate-x-full');
+        }
+      }
+
+      openDrawerBtn?.addEventListener('click', () => toggleDrawer(true));
+      closeDrawerBtn?.addEventListener('click', () => toggleDrawer(false));
+      drawerBackdrop?.addEventListener('click', () => toggleDrawer(false));
+
+      // Keypress Escape to close
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') toggleDrawer(false);
+      });
+
+      // Toggle Skeleton vs Loaded
+      function setLoadedState(loaded) {
+        isLoaded = loaded;
+        if (isLoaded) {
+          skeletonElements.forEach(el => el.classList.add('hidden'));
+          loadedElements.forEach(el => el.classList.remove('hidden'));
+          centralSyncBadge.classList.add('opacity-20', 'scale-95');
+          simulateLabelText.textContent = 'Re-trigger Skeleton Pulse';
+          simulateIcon.textContent = 'hourglass_empty';
+          syncPercentage.textContent = '100%';
+          syncLatencyLabel.textContent = 'Hydration: Ready';
+        } else {
+          skeletonElements.forEach(el => el.classList.remove('hidden'));
+          loadedElements.forEach(el => el.classList.add('hidden'));
+          centralSyncBadge.classList.remove('opacity-20', 'scale-95');
+          simulateLabelText.textContent = 'Simulate Loaded State';
+          simulateIcon.textContent = 'bolt';
+          syncPercentage.textContent = '78%';
+          syncLatencyLabel.textContent = 'Hydration: 42ms';
+        }
+      }
+
+      simulateToggleBtn?.addEventListener('click', () => {
+        setLoadedState(!isLoaded);
+      });
+
+      // Cycle Route Demo
+      function triggerRouteTransition(routeName) {
+        // Show skeleton briefly to emulate actual route navigation
+        setLoadedState(false);
+        routeCurrentName.textContent = routeName;
+
+        // Animate counter
+        let p = 15;
+        syncPercentage.textContent = p + '%';
+        const interval = setInterval(() => {
+          p += 25;
+          if (p >= 95) {
+            clearInterval(interval);
+            syncPercentage.textContent = '100%';
+          } else {
+            syncPercentage.textContent = p + '%';
+          }
+        }, 120);
+      }
+
+      cycleRouteBtn?.addEventListener('click', () => {
+        currentRouteIndex = (currentRouteIndex + 1) % routes.length;
+        triggerRouteTransition(routes[currentRouteIndex]);
+      });
+
+      // Drawer links interaction
+      drawerNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetRoute = item.getAttribute('data-route') + '.duck';
+          
+          // update active styling
+          drawerNavItems.forEach(link => {
+            link.classList.remove('bg-primary-container', 'text-on-primary-container');
+            link.classList.add('text-on-surface-variant');
+          });
+          item.classList.add('bg-primary-container', 'text-on-primary-container');
+          item.classList.remove('text-on-surface-variant');
+
+          toggleDrawer(false);
+          triggerRouteTransition(targetRoute);
+        });
+      });
+
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest border-t border-surface-container-highest py-space-lg"><div class="w-full px-gutter-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm font-code-md text-code-md text-on-surface-variant"><span class="material-symbols-outlined text-primary text-[18px]">psychology</span><span>Socratic Synthesis Engine • Zero Hallucination Mode Active</span></div><div class="flex items-center gap-space-md font-label-sm text-label-sm text-on-surface-variant"><span class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Kernel 6.1-duck-rt</span><span>Telemetry: Nominal</span><span>© Duck Debugger Studio</span></div></div></footer></body></html>

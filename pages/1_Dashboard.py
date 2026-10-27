@@ -1,6 +1,7 @@
 """
 pages/1_Dashboard.py - Analytics & Weak Spots Studio
 Replaced with pixel-perfect Google Stitch UI architecture.
+Updated with hover animations, responsive design, and sliding navigation drawer.
 Powered by SQLite telemetry and Gemini Generative AI.
 Strictly zero emojis.
 """
@@ -97,7 +98,7 @@ for bug_type, count in list(type_counts.items())[:5]:
     share = round((count / total_bugs) * 100, 1) if total_bugs > 0 else 0
     safe_type = html.escape(bug_type)
     bar_chart_html_parts.append(f"""
-    <div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('{safe_type}')">
+    <div class="group flex flex-col gap-1 cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:translate-x-1" onclick="filterByWeakSpot('{safe_type}')">
       <div class="flex items-center justify-between font-label-md text-label-md">
         <span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
           <span class="material-symbols-outlined text-[16px] text-primary">analytics</span>
@@ -113,7 +114,7 @@ for bug_type, count in list(type_counts.items())[:5]:
       </div>
     </div>
     """)
-bars_html = "\\n".join(bar_chart_html_parts)
+bars_html = "\n".join(bar_chart_html_parts)
 
 # Prepare Table Rows HTML and JSON Lookup
 table_rows_parts = []
@@ -143,7 +144,7 @@ for idx, b in enumerate(all_bugs):
 
     row_bg = "bg-surface-container-low" if idx % 2 == 0 else "bg-surface-container-lowest"
     table_rows_parts.append(f"""
-    <tr class="bug-row {row_bg} hover:bg-surface-container transition-colors group cursor-pointer" data-id="{code_id}" data-type="{safe_type}" onclick="openDrawer('{code_id}')">
+    <tr class="bug-row {row_bg} hover:bg-surface-container hover:shadow-[0_0_12px_rgba(157,78,221,0.25)] transition-all duration-150 group cursor-pointer" data-id="{code_id}" data-type="{safe_type}" onclick="openDrawer('{code_id}')">
       <td class="py-3.5 px-4 font-mono font-semibold text-primary">#{code_id}</td>
       <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">{ts}</td>
       <td class="py-3.5 px-4">
@@ -162,7 +163,7 @@ for idx, b in enumerate(all_bugs):
       </td>
       <td class="py-3.5 px-4 text-right whitespace-nowrap">
         <div class="inline-flex items-center gap-1">
-          <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">
+          <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_12px_rgba(157,78,221,0.3)]" type="button">
             Inspect Session
           </button>
         </div>
@@ -170,10 +171,10 @@ for idx, b in enumerate(all_bugs):
     </tr>
     """)
 
-rows_html = "\\n".join(table_rows_parts)
+rows_html = "\n".join(table_rows_parts)
 bugs_json_str = json.dumps(bugs_lookup)
 
-# Full Pixel-Perfect Stitch HTML Layout
+# Full Pixel-Perfect Stitch HTML Layout with Hover Animations, Responsive Grid, and Sliding Drawer
 complete_stitch_html = f"""<!DOCTYPE html>
 <html class="dark" lang="en">
 <head>
@@ -187,6 +188,22 @@ complete_stitch_html = f"""<!DOCTYPE html>
       body {{ overscroll-behavior: none; }}
     }}
     ::-webkit-scrollbar {{ display: none; }}
+    
+    .hover-lift {{
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+    }}
+    .hover-lift:hover {{
+      transform: translateY(-2px) scale(1.02) !important;
+      box-shadow: 0 0 24px rgba(157, 78, 221, 0.35) !important;
+      border-color: #9d4edd !important;
+    }}
+    .hover-pill {{
+      transition: all 0.2s ease !important;
+    }}
+    .hover-pill:hover {{
+      transform: scale(1.05) !important;
+      box-shadow: 0 0 16px rgba(157, 78, 221, 0.4) !important;
+    }}
   </style>
   <script src="https://cdn.tailwindcss.com"></script>
   <script id="tailwind-config">
@@ -264,17 +281,21 @@ complete_stitch_html = f"""<!DOCTYPE html>
 <body class="bg-background font-body-md text-body-md text-on-surface antialiased">
   <!-- Top Navigation Header -->
   <header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest">
-    <div class="h-16 w-full px-6 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-4 shrink-0">
+    <div class="h-16 w-full px-4 sm:px-6 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3 shrink-0">
+        <!-- Hamburger Drawer Button -->
+        <button aria-label="Open Navigation Drawer" class="flex items-center justify-center w-10 h-10 rounded-xl bg-surface-container-high hover:bg-surface-container-highest text-on-surface hover:text-primary transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" id="open-drawer-btn" type="button">
+          <span class="material-symbols-outlined text-[22px]">menu</span>
+        </button>
         <span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold">Duck Debugger</span>
-        <span class="font-label-sm text-label-sm uppercase px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span>
+        <span class="hidden sm:inline font-label-sm text-label-sm uppercase px-2.5 py-0.5 rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span>
       </div>
       <nav class="hidden md:flex items-center gap-1 bg-surface-container-low px-1.5 py-1 rounded-xl border border-surface-container-highest">
-        <a class="px-4 py-2 rounded-lg font-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="/" target="_parent">Socratic Studio</a>
-        <a class="px-4 py-2 font-body-md transition-colors bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]" href="/Dashboard" target="_parent">Analytics & Weak Spots</a>
+        <a class="px-4 py-2 rounded-lg font-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.3)]" href="/" target="_parent">Socratic Studio</a>
+        <a class="px-4 py-2 font-body-md transition-all duration-200 bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)] hover:scale-105" href="/Dashboard" target="_parent">Analytics &amp; Weak Spots</a>
       </nav>
-      <div class="flex items-center gap-4 shrink-0">
-        <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-surface-container-highest">
+      <div class="flex items-center gap-3 shrink-0">
+        <div class="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-high border border-surface-container-highest transition-all duration-200 hover:scale-105">
           <span class="font-label-md text-label-md text-primary font-mono">14 Bug Streak</span>
         </div>
         <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container-low border border-surface-container-highest">
@@ -285,8 +306,59 @@ complete_stitch_html = f"""<!DOCTYPE html>
     </div>
   </header>
 
+  <!-- Interactive Sliding Hamburger Navigation Drawer -->
+  <div class="fixed inset-0 z-[60] bg-surface-container-lowest/70 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300" id="nav-drawer-backdrop"></div>
+  <aside class="fixed top-0 left-0 bottom-0 z-[70] w-80 max-w-[85vw] bg-surface-container-low shadow-2xl flex flex-col -translate-x-full transition-transform duration-300 ease-out" id="nav-drawer-panel">
+    <div class="h-16 px-6 flex items-center justify-between bg-surface-container border-b border-surface-container-highest">
+      <div class="flex items-center gap-3">
+        <div class="flex flex-col">
+          <span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold leading-none">Duck Debugger</span>
+          <span class="text-xs font-mono text-primary mt-1">Route Navigator</span>
+        </div>
+      </div>
+      <button aria-label="Close Navigation Drawer" class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" id="close-drawer-btn" type="button">
+        <span class="material-symbols-outlined text-[22px]">close</span>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto py-4 px-3 flex flex-col gap-2">
+      <!-- Nav Item 1: Socratic Studio -->
+      <a class="drawer-nav-item group flex items-center justify-between p-3 rounded-xl text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" href="/" target="_parent">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center shrink-0 text-primary">
+            <span class="material-symbols-outlined text-[18px]">psychology</span>
+          </div>
+          <span class="text-sm font-semibold">Socratic Studio</span>
+        </div>
+        <span class="material-symbols-outlined text-[18px] opacity-40 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all">chevron_right</span>
+      </a>
+      <!-- Nav Item 2: Analytics & Weak Spots -->
+      <a class="drawer-nav-item group flex items-center justify-between p-3 rounded-xl bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)]" href="/Dashboard" target="_parent">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-on-primary-container/15 flex items-center justify-center shrink-0">
+            <span class="material-symbols-outlined text-[18px]">query_stats</span>
+          </div>
+          <span class="text-sm font-semibold">Analytics &amp; Weak Spots</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+          <span class="material-symbols-outlined text-[18px] opacity-70 group-hover:translate-x-0.5 transition-transform">chevron_right</span>
+        </div>
+      </a>
+    </div>
+    <div class="p-4 bg-surface-container mt-auto flex flex-col gap-2 border-t border-surface-container-highest">
+      <div class="flex items-center justify-between text-xs text-on-surface-variant">
+        <span>Engine Link</span>
+        <span class="text-primary font-semibold">Nominal</span>
+      </div>
+      <div class="w-full h-1 bg-surface-container-highest rounded-full overflow-hidden">
+        <div class="w-full h-full bg-primary-container"></div>
+      </div>
+      <span class="font-mono text-[11px] text-outline">Duck Kernel 6.1 • Zero Hallucination</span>
+    </div>
+  </aside>
+
   <!-- Main Canvas -->
-  <main class="w-full pt-20 px-6 max-w-7xl mx-auto min-h-screen flex flex-col gap-8 pb-16">
+  <main class="w-full pt-20 px-4 sm:px-6 max-w-7xl mx-auto min-h-screen flex flex-col gap-8 pb-16">
     <!-- Top Meta Control / Header Bar -->
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
       <div class="flex flex-col gap-1">
@@ -301,7 +373,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
           </span>
         </div>
         <h1 class="text-3xl font-bold text-on-surface tracking-tight">
-          Debugging Intelligence & Weak Spot Analytics
+          Debugging Intelligence &amp; Weak Spot Analytics
         </h1>
         <p class="text-on-surface-variant text-sm max-w-2xl">
           Systematic telemetry capturing your recurring logic anomalies, Socratic breakdown timeframes, and targeted algorithmic training vectors.
@@ -311,11 +383,11 @@ complete_stitch_html = f"""<!DOCTYPE html>
       <!-- Quick Filter Bar -->
       <div class="flex flex-wrap items-center gap-2 bg-surface-container-low p-1.5 rounded-xl shadow-sm">
         <div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5">
-          <button class="date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all" data-range="30d" type="button">Last 30 Days</button>
-          <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all" data-range="quarter" type="button">This Quarter</button>
-          <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all" data-range="all" type="button">All Time</button>
+          <button class="date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]" data-range="30d" type="button">Last 30 Days</button>
+          <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" data-range="quarter" type="button">This Quarter</button>
+          <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" data-range="all" type="button">All Time</button>
         </div>
-        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-semibold transition-colors" onclick="alert('Exporting telemetry snapshot as JSON...')" type="button">
+        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" onclick="alert('Exporting telemetry snapshot as JSON...')" type="button">
           <span class="material-symbols-outlined text-[15px] text-primary">ios_share</span>
           <span>Export Report</span>
         </button>
@@ -323,7 +395,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
     </div>
 
     <!-- Weekly Weak Spot Hero Banner Card -->
-    <div class="relative overflow-hidden rounded-2xl bg-surface-container p-8 shadow-xl border border-surface-container-highest">
+    <div class="relative overflow-hidden rounded-2xl bg-surface-container p-6 sm:p-8 shadow-xl border border-surface-container-highest transition-all duration-200 hover:shadow-[0_0_24px_rgba(157,78,221,0.25)]">
       <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
       <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary-container/25 blur-3xl pointer-events-none"></div>
       <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
@@ -354,11 +426,11 @@ complete_stitch_html = f"""<!DOCTYPE html>
         </div>
 
         <div class="flex flex-col sm:flex-row lg:flex-col items-stretch gap-3 shrink-0 min-w-[240px]">
-          <button class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all shadow-[0_0_24px_rgba(157,78,221,0.4)] text-sm font-semibold cursor-pointer" onclick="openPracticeModal()" type="button">
+          <button class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_24px_rgba(157,78,221,0.4)] text-sm font-semibold cursor-pointer active:scale-95" onclick="openPracticeModal()" type="button">
             <span class="material-symbols-outlined text-[18px]">extension</span>
             <span>Generate Practice Problem</span>
           </button>
-          <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-colors cursor-pointer" onclick="filterByWeakSpot('{html.escape(top_spot)}')" type="button">
+          <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] cursor-pointer active:scale-95" onclick="filterByWeakSpot('{html.escape(top_spot)}')" type="button">
             <span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
             <span>Review Socratic Transcripts ({top_count})</span>
           </button>
@@ -366,12 +438,12 @@ complete_stitch_html = f"""<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- Analytics Metrics & Data Visualization Bento Grid -->
+    <!-- Analytics Metrics & Data Visualization Bento Grid with Hover Animations -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      <!-- Left Column: 4 Metric Cards -->
+      <!-- Left Column: 4 Metric Cards with hover-lift -->
       <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
         <!-- Metric 1: Total Bugs Solved -->
-        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm">
+        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] hover:border-primary/50 cursor-default">
           <div class="flex items-center justify-between">
             <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Total Bugs Solved</span>
             <span class="material-symbols-outlined text-primary text-[20px]">task_alt</span>
@@ -393,7 +465,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
         </div>
 
         <!-- Metric 2: Avg Time to Aha! -->
-        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm">
+        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] hover:border-primary/50 cursor-default">
           <div class="flex items-center justify-between">
             <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Avg Time to Aha!</span>
             <span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
@@ -411,7 +483,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
         </div>
 
         <!-- Metric 3: Top Weak Spot Frequency -->
-        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm">
+        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] hover:border-primary/50 cursor-default">
           <div class="flex items-center justify-between">
             <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Weak Spot Recurrence</span>
             <span class="material-symbols-outlined text-error text-[20px]">report</span>
@@ -426,7 +498,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
         </div>
 
         <!-- Metric 4: Scope Breakdown -->
-        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm">
+        <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] hover:border-primary/50 cursor-default">
           <div class="flex items-center justify-between">
             <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Scope Distribution</span>
             <span class="material-symbols-outlined text-tertiary text-[20px]">pie_chart</span>
@@ -457,12 +529,12 @@ complete_stitch_html = f"""<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Right Column: Bug Pattern Frequency Matrix -->
-      <div class="lg:col-span-7 p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm">
+      <!-- Right Column: Bug Pattern Frequency Matrix with Hover Interactions -->
+      <div class="lg:col-span-7 p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:shadow-[0_0_20px_rgba(157,78,221,0.2)]">
         <div class="flex items-center justify-between mb-4">
           <div>
             <div class="text-lg font-bold text-on-surface">Bug Pattern Frequency Matrix</div>
-            <div class="text-xs text-on-surface-variant">Resolved anomalies categorised by syntactic & architectural archetype</div>
+            <div class="text-xs text-on-surface-variant">Resolved anomalies categorised by syntactic &amp; architectural archetype</div>
           </div>
           <span class="px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-mono text-xs">
             {total_bugs} incidents recorded
@@ -485,13 +557,13 @@ complete_stitch_html = f"""<!DOCTYPE html>
       <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div class="relative flex-1 max-w-lg">
           <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[20px]">search</span>
-          <input class="w-full bg-surface-container-low text-on-surface text-sm pl-10 pr-4 py-2.5 rounded-xl border border-surface-container-highest focus:outline-none focus:border-primary transition-all" id="bug-search-input" oninput="handleSearch(this.value)" placeholder="Search by root cause, lesson, code snippet, or keyword..." type="text"/>
+          <input class="w-full bg-surface-container-low text-on-surface text-sm pl-10 pr-4 py-2.5 rounded-xl border border-surface-container-highest focus:outline-none focus:border-primary transition-all duration-200" id="bug-search-input" oninput="handleSearch(this.value)" placeholder="Search by root cause, lesson, code snippet, or keyword..." type="text"/>
         </div>
         <div class="flex flex-wrap items-center gap-2 text-xs">
-          <button class="type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all" onclick="filterByWeakSpot('All')" type="button">All Types</button>
-          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Off-by-one')" type="button">Off-by-one</button>
-          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Null Reference')" type="button">Null Reference</button>
-          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Type Coercion')" type="button">Type Coercion</button>
+          <button class="type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]" onclick="filterByWeakSpot('All')" type="button">All Types</button>
+          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all duration-200 hover:scale-105" onclick="filterByWeakSpot('Off-by-one')" type="button">Off-by-one</button>
+          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all duration-200 hover:scale-105" onclick="filterByWeakSpot('Null Reference')" type="button">Null Reference</button>
+          <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all duration-200 hover:scale-105" onclick="filterByWeakSpot('Type Coercion')" type="button">Type Coercion</button>
         </div>
       </div>
 
@@ -532,7 +604,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
               <p class="text-xs text-on-surface-variant font-mono" id="modal-meta">Telemetry verified</p>
             </div>
           </div>
-          <button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-bright transition-colors" onclick="closeDrawer()" type="button">
+          <button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-bright transition-all duration-200 hover:scale-105" onclick="closeDrawer()" type="button">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
@@ -563,7 +635,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
 
         <div class="px-6 py-4 bg-surface-container-high flex items-center justify-between">
           <span class="font-mono text-xs text-on-surface-variant">Status: Telemetry Synchronized</span>
-          <button class="px-4 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-bright text-on-surface text-xs font-semibold transition-colors" onclick="closeDrawer()" type="button">
+          <button class="px-4 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-bright text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95" onclick="closeDrawer()" type="button">
             Close
           </button>
         </div>
@@ -578,7 +650,7 @@ complete_stitch_html = f"""<!DOCTYPE html>
             <span class="material-symbols-outlined text-primary text-[24px]">extension</span>
             <h3 class="text-xl font-bold text-on-surface">Synthesized Practice Vector</h3>
           </div>
-          <button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface" onclick="closePracticeModal()" type="button">
+          <button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" onclick="closePracticeModal()" type="button">
             <span class="material-symbols-outlined text-[20px]">close</span>
           </button>
         </div>
@@ -587,15 +659,15 @@ complete_stitch_html = f"""<!DOCTYPE html>
             Based on your frequent <strong class="text-primary font-semibold">{html.escape(top_spot)}</strong> incidents this week, the Duck AI has synthesized an algorithmic training vector:
           </p>
           <div class="p-4 rounded-xl bg-surface-container-lowest font-mono text-xs border border-surface-container-highest">
-            <div class="text-primary font-bold mb-1">// Challenge #BOUNDS-04: Boundary Isolation & Fencepost Reducer</div>
+            <div class="text-primary font-bold mb-1">// Challenge #BOUNDS-04: Boundary Isolation &amp; Fencepost Reducer</div>
             <div class="text-on-surface-variant">Refactor the slice bounds to handle non-inclusive upper boundaries without dropping terminal elements or raising IndexError.</div>
           </div>
         </div>
         <div class="flex items-center justify-end gap-3">
-          <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold" onclick="closePracticeModal()" type="button">
+          <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105" onclick="closePracticeModal()" type="button">
             Dismiss
           </button>
-          <a class="px-5 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-semibold hover:bg-secondary-container transition-colors shadow-md" href="/" target="_parent">
+          <a class="px-5 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-semibold hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.4)] shadow-md" href="/" target="_parent">
             Launch Socratic Studio
           </a>
         </div>
@@ -610,6 +682,31 @@ complete_stitch_html = f"""<!DOCTYPE html>
   <script>
     const BUGS_DATA = {bugs_json_str};
 
+    // Navigation Drawer Logic
+    const openDrawerBtn = document.getElementById('open-drawer-btn');
+    const closeDrawerBtn = document.getElementById('close-drawer-btn');
+    const drawerBackdrop = document.getElementById('nav-drawer-backdrop');
+    const drawerPanel = document.getElementById('nav-drawer-panel');
+
+    function toggleNavDrawer(open) {{
+      if (!drawerBackdrop || !drawerPanel) return;
+      if (open) {{
+        drawerBackdrop.classList.remove('opacity-0', 'pointer-events-none');
+        drawerBackdrop.classList.add('opacity-100', 'pointer-events-auto');
+        drawerPanel.classList.remove('-translate-x-full');
+        drawerPanel.classList.add('translate-x-0');
+      }} else {{
+        drawerBackdrop.classList.remove('opacity-100', 'pointer-events-auto');
+        drawerBackdrop.classList.add('opacity-0', 'pointer-events-none');
+        drawerPanel.classList.remove('translate-x-0');
+        drawerPanel.classList.add('-translate-x-full');
+      }}
+    }}
+
+    if (openDrawerBtn) openDrawerBtn.addEventListener('click', () => toggleNavDrawer(true));
+    if (closeDrawerBtn) closeDrawerBtn.addEventListener('click', () => toggleNavDrawer(false));
+    if (drawerBackdrop) drawerBackdrop.addEventListener('click', () => toggleNavDrawer(false));
+
     function filterByWeakSpot(type) {{
       const rows = document.querySelectorAll('.bug-row');
       const pills = document.querySelectorAll('.type-pill');
@@ -617,9 +714,9 @@ complete_stitch_html = f"""<!DOCTYPE html>
       pills.forEach(pill => {{
         if (pill.innerText.trim().toLowerCase().includes(type.toLowerCase()) || 
            (type === 'All' && pill.innerText.trim() === 'All Types')) {{
-          pill.className = "type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all";
+          pill.className = "type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]";
         }} else {{
-          pill.className = "type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all";
+          pill.className = "type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all duration-200 hover:scale-105";
         }}
       }});
 
@@ -685,9 +782,9 @@ complete_stitch_html = f"""<!DOCTYPE html>
     document.querySelectorAll('.date-pill').forEach(btn => {{
       btn.addEventListener('click', () => {{
         document.querySelectorAll('.date-pill').forEach(b => {{
-          b.className = "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all";
+          b.className = "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105";
         }});
-        btn.className = "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all";
+        btn.className = "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]";
       }});
     }});
   </script>

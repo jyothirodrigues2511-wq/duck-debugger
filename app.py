@@ -1,7 +1,8 @@
 """
 app.py - Duck Debugger: The Socratic Rubber Duck That Talks Back
-Full Google Stitch UI implementation powered by SQLite and Gemini AI.
-Robust state machine, dual entry-point trigger, zero emojis.
+Full Google Stitch UI implementation with hover animations, responsive design,
+and dynamic skeleton loading screen.
+Strictly zero emojis.
 """
 
 import streamlit as st
@@ -9,6 +10,7 @@ import os
 import sys
 import html
 import logging
+import time
 
 # Windows UTF-8 console output fix
 if sys.platform == "win32":
@@ -46,7 +48,7 @@ db.init_db()
 # Load Gemini API Key silently from .env
 gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
-# --- Full-Bleed Stitch Styling & Chrome Stripping ---
+# --- Full-Bleed Stitch Styling with Hover Animations & Responsive CSS ---
 st.markdown(
     """
     <style>
@@ -95,6 +97,24 @@ st.markdown(
         padding: 0 2rem;
     }
 
+    /* Hover Animations */
+    .hover-lift {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease !important;
+    }
+    .hover-lift:hover {
+        transform: translateY(-2px) scale(1.02) !important;
+        box-shadow: 0 0 24px rgba(157, 78, 221, 0.35) !important;
+        border-color: #9d4edd !important;
+    }
+
+    .hover-pill {
+        transition: all 0.2s ease !important;
+    }
+    .hover-pill:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 0 16px rgba(157, 78, 221, 0.4) !important;
+    }
+
     /* Custom Form & Input Styling */
     .stTextArea textarea {
         background-color: #131a33 !important;
@@ -104,13 +124,23 @@ st.markdown(
         font-family: 'Inter', sans-serif !important;
         font-size: 14px !important;
         line-height: 1.6 !important;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
     }
     .stTextArea textarea:focus {
         border-color: #9d4edd !important;
-        box-shadow: 0 0 12px rgba(157, 78, 221, 0.3) !important;
+        box-shadow: 0 0 14px rgba(157, 78, 221, 0.35) !important;
     }
 
-    /* Gradient buttons */
+    /* Monospace Code Input Area */
+    .code-box textarea {
+        background-color: #0d152d !important;
+        color: #e0b6ff !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 13px !important;
+        border: 1px solid #2c344d !important;
+    }
+
+    /* Gradient buttons with Hover Scaling */
     .stButton > button {
         background: linear-gradient(90deg, #6b13af, #9d4edd) !important;
         color: #ffffff !important;
@@ -119,11 +149,15 @@ st.markdown(
         border-radius: 10px !important;
         padding: 10px 24px !important;
         box-shadow: 0 0 16px rgba(157, 78, 221, 0.35) !important;
-        transition: all 0.2s ease !important;
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, opacity 0.2s ease !important;
     }
     .stButton > button:hover {
-        opacity: 0.92 !important;
-        transform: translateY(-1px) !important;
+        transform: translateY(-2px) scale(1.03) !important;
+        box-shadow: 0 0 24px rgba(157, 78, 221, 0.5) !important;
+        opacity: 0.95 !important;
+    }
+    .stButton > button:active {
+        transform: scale(0.97) !important;
     }
 
     /* Socratic Duck Message Bubble */
@@ -137,6 +171,10 @@ st.markdown(
         font-size: 15px;
         line-height: 1.6;
         box-shadow: 0 4px 20px rgba(5, 13, 37, 0.4);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .duck-msg-bubble:hover {
+        box-shadow: 0 0 20px rgba(157, 78, 221, 0.25);
     }
 
     /* User Message Bubble */
@@ -149,6 +187,7 @@ st.markdown(
         color: #ffffff;
         font-size: 14px;
         line-height: 1.6;
+        transition: transform 0.2s ease;
     }
 
     /* Breakthrough Solved Card */
@@ -161,28 +200,52 @@ st.markdown(
         margin-bottom: 24px;
         box-shadow: 0 0 32px rgba(157, 78, 221, 0.3);
     }
+
+    /* Shimmer Skeleton Animation */
+    @keyframes shimmerWave {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+    }
+    .skeleton-shimmer {
+        background: linear-gradient(90deg, #171e37 25%, #2c344d 50%, #171e37 75%);
+        background-size: 200% 100%;
+        animation: shimmerWave 1.8s infinite linear;
+        border-radius: 8px;
+    }
+
+    /* Responsive Media Queries */
+    @media (max-width: 768px) {
+        .stitch-nav {
+            padding: 0 1rem;
+        }
+        .main .block-container {
+            padding-top: 4.5rem !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+        }
+    }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# --- Top Navigation Bar ---
+# --- Top Navigation Bar with Drawer Support ---
 st.markdown(
     """
     <div class="stitch-nav">
       <div style="display:flex; align-items:center; gap:12px;">
         <span style="font-size:1.15rem; font-weight:700; color:#dbe1ff; letter-spacing:-0.5px;">Duck Debugger</span>
-        <span style="font-size:11px; text-transform:uppercase; padding:2px 10px; border-radius:9999px; background:#6b13af; color:#d4a5ff; border:1px solid rgba(157,78,221,0.4); font-family:'JetBrains Mono'; font-weight:600;">v2.4 Pro</span>
+        <span class="hover-pill" style="font-size:11px; text-transform:uppercase; padding:2px 10px; border-radius:9999px; background:#6b13af; color:#d4a5ff; border:1px solid rgba(157,78,221,0.4); font-family:'JetBrains Mono'; font-weight:600;">v2.4 Pro</span>
       </div>
       <div style="display:flex; align-items:center; gap:6px; background:#131a33; padding:4px 6px; border-radius:12px; border:1px solid #2c344d;">
-        <a style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35);" href="/" target="_self">Socratic Studio</a>
-        <a style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:500; text-decoration:none; color:#d0c2d5; transition:colors 0.2s;" href="/Dashboard" target="_self">Analytics & Weak Spots</a>
+        <a class="hover-pill" style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35);" href="/" target="_self">Socratic Studio</a>
+        <a class="hover-pill" style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:500; text-decoration:none; color:#d0c2d5; transition:colors 0.2s;" href="/Dashboard" target="_self">Analytics & Weak Spots</a>
       </div>
       <div style="display:flex; align-items:center; gap:12px;">
-        <div style="background:#212942; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#e0b6ff;">
+        <div class="hover-pill" style="background:#212942; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#e0b6ff;">
           14 Bug Streak
         </div>
-        <div style="background:#131a33; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5;">
+        <div class="hover-pill" style="background:#131a33; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5;">
           Ready
         </div>
       </div>
@@ -219,17 +282,17 @@ with col_sub_left:
     st.markdown(
         f"""
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
-          <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:9999px; background:rgba(157,78,221,0.2); color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px; font-weight:600;">
+          <span class="hover-pill" style="display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:9999px; background:rgba(157,78,221,0.2); color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px; font-weight:600;">
             <span style="width:6px; height:6px; border-radius:9999px; background:#9d4edd;"></span>
             Socratic Mode: {status_mode}
           </span>
-          <span style="background:#212942; padding:3px 10px; border-radius:9999px; color:#dbe1ff; font-family:'JetBrains Mono'; font-size:11px;">
+          <span class="hover-pill" style="background:#212942; padding:3px 10px; border-radius:9999px; color:#dbe1ff; font-family:'JetBrains Mono'; font-size:11px;">
             Turn Counter: {st.session_state.turn_count} / 6
           </span>
-          <span style="background:#171e37; padding:3px 10px; border-radius:9999px; color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px;">
+          <span class="hover-pill" style="background:#171e37; padding:3px 10px; border-radius:9999px; color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px;">
             {html.escape(st.session_state.selected_language)}
           </span>
-          <span style="background:#050d25; padding:3px 10px; border-radius:9999px; color:#d0c2d5; font-family:'JetBrains Mono'; font-size:11px;">
+          <span class="hover-pill" style="background:#050d25; padding:3px 10px; border-radius:9999px; color:#d0c2d5; font-family:'JetBrains Mono'; font-size:11px;">
             #DBG-8942
           </span>
         </div>
@@ -243,37 +306,6 @@ with col_sub_right:
         if not st.session_state.solved and len(st.session_state.messages) > 0:
             if st.button("I Solved It!", use_container_width=True):
                 st.session_state.is_saving = True
-                with st.spinner("Extracting insights and logging to telemetry..."):
-                    try:
-                        extracted = prompts.extract_solved_json(
-                            conversation=st.session_state.messages,
-                            code_snippet=st.session_state.code_snippet_input,
-                            bug_description=st.session_state.bug_desc_input,
-                            language=st.session_state.selected_language,
-                            api_key=gemini_api_key
-                        )
-                    except Exception as err:
-                        logger.warning("Error extracting JSON, using fallback: %s", err)
-                        extracted = {
-                            "bug_type": "Logic",
-                            "scope": "logic",
-                            "root_cause": "Issue resolved through Socratic inquiry.",
-                            "lesson": "Trace state mutations line-by-line.",
-                            "language": st.session_state.selected_language
-                        }
-                    bug_id = db.save_bug(
-                        bug_type=extracted.get("bug_type", "General"),
-                        scope=extracted.get("scope", "logic"),
-                        root_cause=extracted.get("root_cause", ""),
-                        lesson=extracted.get("lesson", ""),
-                        language=extracted.get("language", st.session_state.selected_language),
-                        description=st.session_state.bug_desc_input,
-                        code_snippet=st.session_state.code_snippet_input
-                    )
-                    extracted["id"] = bug_id
-                    st.session_state.solved_record = extracted
-                    st.session_state.solved = True
-                    st.session_state.is_saving = False
                 st.rerun()
     with c_btn2:
         if st.button("Reset", use_container_width=True):
@@ -313,10 +345,10 @@ with col_desc:
         label_visibility="collapsed"
     )
 
-    # Audio Waveform Visualizer Bar
+    # Audio Waveform Visualizer Bar with Hover Effect
     st.markdown(
         """
-        <div style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:8px 14px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
+        <div class="hover-lift" style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:8px 14px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:8px;">
             <div style="width:24px; height:24px; border-radius:9999px; background:#9d4edd; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:11px; font-weight:700;">
               MIC
@@ -369,8 +401,43 @@ with col_code:
             label_visibility="collapsed"
         )
 
-# Helper function to trigger Socratic Question
-def trigger_socratic_turn(user_followup=None):
+# --- SKELETON LOADING VIEW (Triggered only when actively processing) ---
+def render_skeleton_loading_screen(label="Socratic Engine Syncing..."):
+    return f"""
+    <div style="margin: 20px 0; padding: 24px; border-radius: 16px; background: rgba(19, 26, 51, 0.8); border: 1px solid #2c344d; box-shadow: 0 10px 30px rgba(5, 13, 37, 0.6);">
+      <!-- Floating Center Sync Badge -->
+      <div style="display:flex; justify-content:center; margin-bottom: 24px;">
+        <div class="hover-pill" style="display:flex; align-items:center; gap:12px; padding:8px 24px; border-radius:9999px; background:#171e37; border:1px solid #2c344d; box-shadow:0 0 24px rgba(157,78,221,0.35);">
+          <span style="width:10px; height:10px; border-radius:9999px; background:#9d4edd; box-shadow:0 0 8px #9d4edd; display:inline-block;"></span>
+          <span style="font-size:12px; font-weight:600; color:#dbe1ff; font-family:'JetBrains Mono';">{html.escape(label)}</span>
+          <div style="width:120px; height:6px; border-radius:9999px; background:#212942; overflow:hidden;">
+            <div style="width:85%; height:100%; background:linear-gradient(90deg, #6b13af, #9d4edd, #e0b6ff); border-radius:9999px;"></div>
+          </div>
+          <span style="font-size:11px; font-family:'JetBrains Mono'; color:#e0b6ff; font-weight:bold;">84%</span>
+        </div>
+      </div>
+
+      <!-- Shimmer Placeholder Grid -->
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:18px;">
+        <div style="background:#0d152d; border:1px solid #212942; border-radius:12px; padding:18px; height:140px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div class="skeleton-shimmer" style="width:35%; height:14px;"></div>
+          <div class="skeleton-shimmer" style="width:90%; height:18px;"></div>
+          <div class="skeleton-shimmer" style="width:60%; height:14px;"></div>
+        </div>
+        <div style="background:#0d152d; border:1px solid #212942; border-radius:12px; padding:18px; height:140px; display:flex; flex-direction:column; justify-content:space-between;">
+          <div class="skeleton-shimmer" style="width:45%; height:14px;"></div>
+          <div class="skeleton-shimmer" style="width:80%; height:18px;"></div>
+          <div class="skeleton-shimmer" style="width:55%; height:14px;"></div>
+        </div>
+      </div>
+    </div>
+    """
+
+# Skeleton Placeholder (Only triggers when needed)
+skeleton_placeholder = st.empty()
+
+# --- Socratic Turn Handler ---
+def execute_socratic_turn(user_followup=None):
     safe_code = st.session_state.code_snippet_input.strip()
     safe_desc = st.session_state.bug_desc_input.strip()
 
@@ -378,29 +445,70 @@ def trigger_socratic_turn(user_followup=None):
         st.session_state.messages.append({"role": "user", "content": user_followup})
         st.session_state.turn_count += 1
 
-    with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
-        try:
-            duck_q = prompts.generate_socratic_response(
-                messages=st.session_state.messages,
-                code_snippet=safe_code,
-                bug_description=safe_desc,
-                turn_count=st.session_state.turn_count,
-                api_key=gemini_api_key
-            )
-        except Exception as e:
-            logger.warning("Gemini Socratic call exception: %s. Using heuristic.", e)
-            duck_q = prompts._generate_offline_socratic_response(
-                st.session_state.turn_count,
-                safe_desc,
-                safe_code,
-                st.session_state.messages
-            )
+    # Show skeleton loading screen only during processing
+    skeleton_placeholder.markdown(render_skeleton_loading_screen("Socratic Engine Syncing..."), unsafe_allow_html=True)
 
-        if not duck_q or not duck_q.strip():
-            duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
+    try:
+        duck_q = prompts.generate_socratic_response(
+            messages=st.session_state.messages,
+            code_snippet=safe_code,
+            bug_description=safe_desc,
+            turn_count=st.session_state.turn_count,
+            api_key=gemini_api_key
+        )
+    except Exception as e:
+        logger.warning("Gemini Socratic call exception: %s. Using fallback heuristic.", e)
+        duck_q = prompts._generate_offline_socratic_response(
+            st.session_state.turn_count,
+            safe_desc,
+            safe_code,
+            st.session_state.messages
+        )
 
-        st.session_state.messages.append({"role": "assistant", "content": duck_q})
-        st.session_state.session_started = True
+    if not duck_q or not duck_q.strip():
+        duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
+
+    # Clear skeleton loading screen
+    skeleton_placeholder.empty()
+
+    st.session_state.messages.append({"role": "assistant", "content": duck_q})
+    st.session_state.session_started = True
+
+# Handle background saving state if triggered
+if st.session_state.is_saving:
+    skeleton_placeholder.markdown(render_skeleton_loading_screen("Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+    try:
+        extracted = prompts.extract_solved_json(
+            conversation=st.session_state.messages,
+            code_snippet=st.session_state.code_snippet_input,
+            bug_description=st.session_state.bug_desc_input,
+            language=st.session_state.selected_language,
+            api_key=gemini_api_key
+        )
+    except Exception as err:
+        logger.warning("Error extracting JSON, using fallback: %s", err)
+        extracted = {
+            "bug_type": "Logic",
+            "scope": "logic",
+            "root_cause": "Issue resolved through Socratic inquiry.",
+            "lesson": "Trace state mutations line-by-line.",
+            "language": st.session_state.selected_language
+        }
+    bug_id = db.save_bug(
+        bug_type=extracted.get("bug_type", "General"),
+        scope=extracted.get("scope", "logic"),
+        root_cause=extracted.get("root_cause", ""),
+        lesson=extracted.get("lesson", ""),
+        language=extracted.get("language", st.session_state.selected_language),
+        description=st.session_state.bug_desc_input,
+        code_snippet=st.session_state.code_snippet_input
+    )
+    extracted["id"] = bug_id
+    st.session_state.solved_record = extracted
+    st.session_state.solved = True
+    st.session_state.is_saving = False
+    skeleton_placeholder.empty()
+    st.rerun()
 
 # Prominent "Start Quacking with the Duck" Button (always visible when no messages yet)
 if len(st.session_state.messages) == 0:
@@ -409,7 +517,7 @@ if len(st.session_state.messages) == 0:
         if not desc_val.strip() and not code_val.strip():
             st.warning("Please provide either a bug description or code snippet above to begin.")
         else:
-            trigger_socratic_turn()
+            execute_socratic_turn()
             st.rerun()
 
 # --- Socratic Conversation Feed ---
@@ -433,7 +541,7 @@ if len(st.session_state.messages) > 0 or st.session_state.session_started:
         if msg.get("role") == "assistant":
             st.markdown(
                 f"""
-                <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px;">
+                <div class="hover-lift" style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px; border-radius:14px; padding:4px;">
                   <div style="width:44px; height:44px; border-radius:12px; overflow:hidden; border:1px solid #9d4edd; flex-shrink:0; box-shadow:0 0 12px rgba(157,78,221,0.3);">
                     <img src="{duck_avatar_url}" style="width:100%; height:100%; object-fit:cover;" alt="Duck Mascot"/>
                   </div>
@@ -460,7 +568,7 @@ if len(st.session_state.messages) > 0 or st.session_state.session_started:
                       {content_safe}
                     </div>
                   </div>
-                  <div style="width:40px; height:40px; border-radius:12px; background:#6b13af; color:#ffffff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                  <div style="width:40px; height:40px; border-radius:12px; background:#6b13af; color:#ffffff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 0 12px rgba(157,78,221,0.35);">
                     YOU
                   </div>
                 </div>
@@ -473,10 +581,10 @@ if len(st.session_state.messages) > 0 or st.session_state.session_started:
         rec = st.session_state.solved_record
         st.markdown(
             f"""
-            <div class="breakthrough-box">
+            <div class="breakthrough-box hover-lift">
               <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
                 <div style="display:flex; align-items:center; gap:8px;">
-                  <span style="font-size:11px; text-transform:uppercase; background:#9d4edd; color:#ffffff; padding:2px 8px; border-radius:9999px; font-weight:600; font-family:'JetBrains Mono';">
+                  <span class="hover-pill" style="font-size:11px; text-transform:uppercase; background:#9d4edd; color:#ffffff; padding:2px 8px; border-radius:9999px; font-weight:600; font-family:'JetBrains Mono';">
                     Breakthrough Unlocked
                   </span>
                   <span style="font-family:'JetBrains Mono'; font-size:12px; color:#e0b6ff;">
@@ -500,7 +608,7 @@ if len(st.session_state.messages) > 0 or st.session_state.session_started:
               </div>
 
               <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <a href="/Dashboard" target="_self" style="background:#9d4edd; color:#ffffff; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; box-shadow:0 0 16px rgba(157,78,221,0.4);">
+                <a href="/Dashboard" target="_self" class="hover-pill" style="background:#9d4edd; color:#ffffff; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; box-shadow:0 0 16px rgba(157,78,221,0.4);">
                   View Analytics & Weak Spots
                 </a>
               </div>
@@ -514,7 +622,7 @@ if not st.session_state.solved:
     user_input = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
     if user_input and user_input.strip():
         clean_text = user_input.strip()
-        trigger_socratic_turn(user_followup=clean_text)
+        execute_socratic_turn(user_followup=clean_text)
         st.rerun()
 
 # --- Footer ---

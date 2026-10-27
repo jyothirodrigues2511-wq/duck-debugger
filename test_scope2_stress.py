@@ -132,13 +132,13 @@ def parse_html(tag: str):
 
     def test_04_emojis_unicode_and_null_bytes(self):
         """Test emojis, non-ASCII Unicode, and null/control bytes."""
-        emoji_desc = "🦆 Duck says hello! 🐛 Found a nasty bug in 🔥 production!"
-        emoji_code = "# 🚀 Rocket launcher\nval = '✨' + '🔥'"
+        emoji_desc = " Duck says hello!  Found a nasty bug in  production!"
+        emoji_code = "#  Rocket launcher\nval = '✨' + ''"
         null_code = "def test():\x00\x00\x01\x08 return None"
         null_desc = "Voice text\x00with embedded nulls\x00and ctrl\x02chars"
 
         resp = prompts.generate_socratic_response(
-            messages=[{"role": "user", "content": "User reply with 🦆 and \x00 null"}],
+            messages=[{"role": "user", "content": "User reply with  and \x00 null"}],
             code_snippet=emoji_code + null_code,
             bug_description=emoji_desc + null_desc,
             turn_count=0,
@@ -148,9 +148,9 @@ def parse_html(tag: str):
 
         # Database save with null bytes and emojis
         bug_id = db.save_bug(
-            bug_type="Off-by-one 🦆",
+            bug_type="Off-by-one ",
             scope="logic",
-            root_cause="Boundary error \x00 with emoji 🎯",
+            root_cause="Boundary error \x00 with emoji ",
             lesson="Always test edge cases ✨",
             language="Python",
             description=emoji_desc + null_desc,

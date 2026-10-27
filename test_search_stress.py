@@ -41,7 +41,7 @@ def run_tests():
         ("Modulo bug", "logic", "Used % operator for formatting instead of f-string", "Avoid % formatting", "Python"),
         ("Private var", "syntax", "Accessed _secret_token directly", "Use getter for _secret_token", "Python"),
         ("Backslash issue", "parser", "Escaped path with C:\\Users\\test", "Use raw strings r'C:\\Users'", "Windows"),
-        ("Emoji duck", "ui", "Duck avatar 🦆 not showing", "Support UTF-8 emojis 🦆", "HTML"),
+        ("Special symbol", "ui", "Duck symbol [quack] not showing", "Support UTF-8 symbols [quack]", "HTML"),
         ("Quotes in string", "syntax", "Failed on \"double quotes\" and 'single quotes'", "Escape ' and \" properly", "SQL"),
         ("Accented chars", "i18n", "Crashing on café and résumé", "Normalize Unicode with unicodedata", "Python"),
     ]
@@ -86,7 +86,7 @@ def run_tests():
         ("_", 1), # Only the private var bug has _
         ("\\", 1), # Only the backslash issue has \
         ("C:\\Users", 1),
-        ("🦆", 1),
+        ("[quack]", 1),
         ("\"", 1),
         ("'", 2), # Both 'Quotes in string' and 'Backslash issue' (r'C:\Users') have '
         ("café", 1),
