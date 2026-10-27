@@ -879,7 +879,7 @@ def render_analytics():
         share = round((count / total_bugs) * 100, 1) if total_bugs > 0 else 0
         safe_type = html.escape(bug_type)
         bar_chart_html_parts.append(f"""
-        <div class="group flex flex-col gap-1 cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:translate-x-1" onclick="filterByWeakSpot('{safe_type}')">
+        <div class="group flex flex-col gap-1 cursor-pointer transition-all duration-200 hover:scale-[1.01] hover:translate-x-1" data-spot="{safe_type}" onclick="filterByWeakSpot(this.getAttribute('data-spot'))">
           <div class="flex items-center justify-between font-label-md text-label-md">
             <span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
               <span class="material-symbols-outlined text-[16px] text-primary">analytics</span>
@@ -913,12 +913,12 @@ def render_analytics():
 
         bugs_lookup[code_id] = {
             "id": code_id,
-            "type": safe_type,
-            "scope": safe_scope,
-            "root": safe_root,
-            "lesson": safe_lesson,
-            "desc": safe_desc,
-            "code": safe_code,
+            "type": b.get("bug_type") or "General",
+            "scope": b.get("scope") or "Logic",
+            "root": b.get("root_cause") or "Root cause not specified",
+            "lesson": b.get("lesson") or "Lesson not specified",
+            "desc": b.get("description") or "Voice transcript not recorded.",
+            "code": b.get("code_snippet") or "# No code snippet recorded",
             "timestamp": ts
         }
 
@@ -952,7 +952,7 @@ def render_analytics():
         """)
 
     rows_html = "\n".join(table_rows_parts)
-    bugs_json_str = json.dumps(bugs_lookup)
+    bugs_json_str = json.dumps(bugs_lookup).replace("<", "\\u003c")
 
     analytics_html = f"""<!DOCTYPE html>
     <html class="dark" lang="en">
@@ -1114,7 +1114,7 @@ def render_analytics():
                 <span class="material-symbols-outlined text-[18px]">extension</span>
                 <span>Generate Practice Problem</span>
               </button>
-              <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] cursor-pointer active:scale-95" onclick="filterByWeakSpot('{html.escape(top_spot)}')" type="button">
+              <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] cursor-pointer active:scale-95" data-spot="{html.escape(top_spot)}" onclick="filterByWeakSpot(this.getAttribute('data-spot'))" type="button">
                 <span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
                 <span>Review Socratic Transcripts ({top_count})</span>
               </button>
@@ -1298,7 +1298,7 @@ def render_analytics():
                   <span class="material-symbols-outlined text-[18px]">psychology_alt</span>
                   <span>Duck Reflection Summary</span>
                 </div>
-                <p class="text-on-surface-variant text-sm leading-relaxed" id="modal-reflection">
+                <p class="text-on-surface-variant text-sm leading-relaxed whitespace-pre-line" id="modal-reflection">
                   Session reflection details.
                 </p>
               </div>
@@ -1408,12 +1408,12 @@ def render_analytics():
           
           const bug = BUGS_DATA[codeId];
           if (modal && bug) {{
-            if (title) title.innerText = `Socratic Session: #${{codeId}}`;
-            if (badge) badge.innerText = bug.type;
-            if (meta) meta.innerText = `Scope: ${{bug.scope}} • Recorded: ${{bug.timestamp}}`;
-            if (reflection) reflection.innerHTML = `<strong>Root Cause:</strong> ${{bug.root}}<br/><br/><strong>Key Socratic Lesson:</strong> ${{bug.lesson}}`;
-            if (code) code.innerText = bug.code;
-            if (dictation) dictation.innerText = `"${{bug.desc}}"`;
+            if (title) title.textContent = `Socratic Session: #${{codeId}}`;
+            if (badge) badge.textContent = bug.type;
+            if (meta) meta.textContent = `Scope: ${{bug.scope}} • Recorded: ${{bug.timestamp}}`;
+            if (reflection) reflection.textContent = `Root Cause: ${{bug.root}}\n\nKey Socratic Lesson: ${{bug.lesson}}`;
+            if (code) code.textContent = bug.code;
+            if (dictation) dictation.textContent = `"${{bug.desc}}"`;
             modal.classList.remove('hidden');
           }}
         }}
