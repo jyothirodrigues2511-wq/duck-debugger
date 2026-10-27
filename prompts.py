@@ -227,7 +227,7 @@ Code Snippet:
     context_prompt += "\nRubber Duck (max 2 sentences, exactly 1 question, no fixes):"
 
     if client:
-        for model in ("gemini-2.5-flash", "gemini-1.5-flash"):
+        for model in ("gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"):
             raw_text = _call_gemini_with_retry(
                 client=client,
                 model_name=model,
@@ -252,15 +252,24 @@ def _generate_offline_socratic_response(
     messages: List[Dict[str, str]]
 ) -> str:
     """Fallback heuristics to ensure interactive demo works even without an API key."""
+    combined = (description + " " + code).lower()
     if turn_count == 0 or len(messages) <= 1:
+        if any(w in combined for w in ("while", "infinite", "freeze", "forever", "hang", "countdown")):
+            return "Quack! You expected the countdown loop to finish at 1, but what statement inside your loop modifies `countdown` so it eventually reaches 0?"
+        if any(w in combined for w in ("index", "range", "slice", "bound", "overflow")):
+            return "Quack! What are the exact minimum and maximum index values accessed during this iteration versus the length of the list?"
+        if any(w in combined for w in ("null", "undefined", "none", "cannot read")):
+            return "Quack! At the exact moment this line runs, which variable might still be unassigned or undefined?"
         return "Quack! What exact value did you expect your code to produce at this step versus what actually printed or returned?"
     elif turn_count == 1:
         if any(kw in code for kw in ("for ", "while ", "range(", "len(")):
-            return "Quack! If we trace that loop step-by-step, what is the value of your loop counter on the very first and very last iteration?"
+            return "Quack! If we trace that loop step-by-step, what is the value of your loop counter on the very first and second iteration?"
         return "Quack! What specific variable holds the unexpected state right before the error triggers?"
     elif turn_count == 2:
         return "Quack! Have you checked whether the edge case or boundary index is inclusive or exclusive?"
     elif turn_count >= 3:
+        if any(w in combined for w in ("while", "countdown", "loop")):
+            return "Quack! Look closely at `countdown + 1;`: does evaluating that expression actually assign the new number back into `countdown`?"
         return "Quack! Look closely at the comparison operator and boundaries in your code: is it checking one index too far?"
     return "Quack! What assumption did you make about this line that might not be 100% true at runtime?"
 
@@ -310,16 +319,20 @@ Language: {safe_lang}
 Debugging Conversation:
 {history_str}
 """
-        raw_text = _call_gemini_with_retry(
-            client=client,
-            model_name="gemini-2.5-flash",
-            contents=user_prompt,
-            config={
-                "system_instruction": EXTRACTION_SYSTEM_PROMPT,
-                "response_mime_type": "application/json",
-                "temperature": 0.2,
-            }
-        )
+        raw_text = None
+        for model in ("gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"):
+            raw_text = _call_gemini_with_retry(
+                client=client,
+                model_name=model,
+                contents=user_prompt,
+                config={
+                    "system_instruction": EXTRACTION_SYSTEM_PROMPT,
+                    "response_mime_type": "application/json",
+                    "temperature": 0.2,
+                }
+            )
+            if raw_text:
+                break
         if raw_text:
             cleaned = _strip_markdown_json(raw_text)
             try:
@@ -395,14 +408,16 @@ def generate_practice_problem(
     prompt = PRACTICE_PROBLEM_PROMPT.format(weak_spot=clean_weak, language=safe_lang)
 
     if client:
-        raw_text = _call_gemini_with_retry(
-            client=client,
-            model_name="gemini-2.5-flash",
-            contents=prompt,
-            config={"temperature": 0.5, "max_output_tokens": 400}
-        )
-        if raw_text:
-            return raw_text
+        raw_text = None
+        for model in ("gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"):
+            raw_text = _call_gemini_with_retry(
+                client=client,
+                model_name=model,
+                contents=prompt,
+                config={"temperature": 0.5, "max_output_tokens": 400}
+            )
+            if raw_text:
+                return raw_text
 
     # Curated fallback practice problem
     return f"""### 🦆 Rubber Duck Quick Challenge: {clean_weak}
