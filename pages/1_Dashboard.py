@@ -1,5 +1,5 @@
 """
-pages/1_📊_Dashboard.py - Analytics, Weak Spot Tracker, and Practice Problem Generator
+pages/1_Dashboard.py - Analytics, Weak Spot Tracker, and Practice Problem Generator
 """
 
 import streamlit as st
@@ -29,8 +29,7 @@ import db
 import prompts
 
 st.set_page_config(
-    page_title="Duck Debugger - Dashboard 📊",
-    page_icon="🦆",
+    page_title="Duck Debugger - Dashboard",
     layout="wide"
 )
 
@@ -70,7 +69,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown('<div class="dash-title">📊 Debugging Analytics & Weak Spots</div>', unsafe_allow_html=True)
+st.markdown('<div class="dash-title">Debugging Analytics & Weak Spots</div>', unsafe_allow_html=True)
 st.caption("Review your debugging history, pinpoint your recurring blind spots, and drill with Socratic practice problems.")
 
 # Fetch DB Stats
@@ -88,12 +87,12 @@ with st.container():
             st.markdown(
                 f"""
                 <div class="weak-spot-card">
-                    <h3 style="margin:0; color:#BF360C;">🎯 Weekly Focus & Top Weak Spot</h3>
-                    <p style="font-size:1.15rem; margin: 8px 0 0 0; color:#37474F;">
+                    <h3 style="margin:0; color:#e0b6ff;">Weekly Focus & Top Weak Spot</h3>
+                    <p style="font-size:1.15rem; margin: 8px 0 0 0; color:#dbe1ff;">
                         Your most frequent blind spot: <b>{top_spot}</b> (<span class="metric-badge">{top_count} times this week</span>)
                     </p>
-                    <p style="font-size:0.9rem; color:#5D4037; margin:5px 0 0 0;">
-                        💡 Frequent patterns happen! Turn this blind spot into your superpower with targeted practice.
+                    <p style="font-size:0.9rem; color:#d0c2d5; margin:5px 0 0 0;">
+                        Frequent patterns happen! Turn this blind spot into your superpower with targeted practice.
                     </p>
                 </div>
                 """,
@@ -103,12 +102,12 @@ with st.container():
             st.markdown(
                 """
                 <div class="weak-spot-card">
-                    <h3 style="margin:0; color:#BF360C;">🎯 Welcome to your Debugging Dashboard</h3>
-                    <p style="font-size:1.1rem; margin: 8px 0 0 0; color:#37474F;">
+                    <h3 style="margin:0; color:#e0b6ff;">Welcome to your Debugging Dashboard</h3>
+                    <p style="font-size:1.1rem; margin: 8px 0 0 0; color:#dbe1ff;">
                         No bugs recorded yet! Start debugging on the main page to populate your weekly analytics.
                     </p>
-                    <p style="font-size:0.9rem; color:#5D4037; margin:5px 0 0 0;">
-                        💡 You can click the practice button on the right to test your debugging intuition right now!
+                    <p style="font-size:0.9rem; color:#d0c2d5; margin:5px 0 0 0;">
+                        You can click the practice button on the right to test your debugging intuition right now!
                     </p>
                 </div>
                 """,
@@ -116,7 +115,7 @@ with st.container():
             )
     with col_btn:
         st.markdown("**Drill this spot:**")
-        practice_clicked = st.button("🧩 Generate Practice Problem", type="primary", use_container_width=True)
+        practice_clicked = st.button("Generate Practice Problem", type="primary", use_container_width=True)
 
 # --- Practice Problem Section ---
 if "current_practice_problem" not in st.session_state:
@@ -135,9 +134,9 @@ if practice_clicked:
 
 if st.session_state.current_practice_problem:
     target_spot = top_spot if top_spot != "None yet" else "Off-by-one"
-    with st.expander("🧩 Practice Challenge: " + target_spot, expanded=True):
+    with st.expander("Practice Challenge: " + target_spot, expanded=True):
         st.markdown(st.session_state.current_practice_problem)
-        st.info("💡 Duck Tip: Try tracing the boundary conditions in your head or on scratch paper before writing code!")
+        st.info("Duck Tip: Try tracing the boundary conditions in your head or on scratch paper before writing code!")
         if st.button("Close Practice Problem"):
             st.session_state.current_practice_problem = None
             st.rerun()
@@ -148,7 +147,7 @@ st.divider()
 col_stats, col_chart = st.columns([1, 2], gap="large")
 
 with col_stats:
-    st.markdown("### 📈 Summary Metrics")
+    st.markdown("### Summary Metrics")
     st.metric("Total Bugs Solved", stats["total_bugs"])
     if top_spot != "None yet":
         st.metric("Top Weak Spot Count (This Week)", f"{top_count} issues", delta=f"{top_spot}", delta_color="inverse")
@@ -166,7 +165,7 @@ with col_stats:
             st.write(f"- **{sc.capitalize()}:** {cnt}")
 
 with col_chart:
-    st.markdown("### 📊 Bug Type Counts")
+    st.markdown("### Bug Type Counts")
     if stats["type_counts"]:
         df_chart = pd.DataFrame(
             list(stats["type_counts"].items()),
@@ -179,7 +178,7 @@ with col_chart:
 st.divider()
 
 # --- Search and Past Bugs Table ---
-st.markdown("### 🔍 Past Bugs History")
+st.markdown("### Past Bugs History")
 st.caption("Search across root causes, lessons, and bug types using keywords.")
 
 search_query = st.text_input(
@@ -220,7 +219,7 @@ if filtered_bugs:
     )
 
     # Detailed expandable view for each bug
-    with st.expander("🔎 View Detailed Snippets & Voice Dictations"):
+    with st.expander("View Detailed Snippets & Voice Dictations"):
         selected_id = st.selectbox(
             "Select Bug ID to inspect full voice dictation and code snippet:",
             [b["id"] for b in filtered_bugs]
@@ -234,7 +233,7 @@ if filtered_bugs:
 
             if selected_bug.get("description"):
                 st.markdown("**Original Voice Dictation:**")
-                st.info(f"🎙️ *\"{selected_bug['description']}\"*")
+                st.info(f"*\"{selected_bug['description']}\"*")
 
             if selected_bug.get("code_snippet"):
                 st.markdown("**Original Code Snippet:**")

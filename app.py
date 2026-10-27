@@ -1,5 +1,5 @@
 """
-app.py - Duck Debugger: The Socratic Rubber Duck That Talks Back 🦆
+app.py - Duck Debugger: The Socratic Rubber Duck That Talks Back
 Main debugging chat interface with voice-dictation support and SQLite persistence.
 """
 
@@ -27,8 +27,7 @@ import prompts
 
 # Page configuration
 st.set_page_config(
-    page_title="Duck Debugger 🦆",
-    page_icon="🦆",
+    page_title="Duck Debugger",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -93,10 +92,10 @@ gemini_api_key = os.getenv("GEMINI_API_KEY", "")
 
 # --- Sidebar Configuration ---
 with st.sidebar:
-    st.markdown("## 🦆 Duck Debugger")
+    st.markdown("## Duck Debugger")
     st.caption("A Rubber Duck that talks back — strictly Socratic.")
 
-    st.markdown("### 🎙️ Voice Dictation Tips")
+    st.markdown("### Voice Dictation Tips")
     st.markdown(
         """
         - Speak naturally with messy thoughts!
@@ -115,7 +114,7 @@ with st.sidebar:
         st.caption(f"Top focus: **{stats['top_weak_spot']}**")
 
     st.divider()
-    if st.button("🔄 Start Fresh Debugging Session", use_container_width=True):
+    if st.button("Start Fresh Debugging Session", use_container_width=True):
         st.session_state.messages = []
         st.session_state.bug_description = ""
         st.session_state.code_snippet = ""
@@ -147,11 +146,11 @@ if "language" not in st.session_state:
     st.session_state.language = "Python"
 
 # --- Main App Header ---
-st.markdown('<div class="main-title">🦆 Duck Debugger</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-title">Duck Debugger</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-title">Explain your bug out loud. Your rubber duck will guide you with 1-shot Socratic questions until you crack it yourself.</div>', unsafe_allow_html=True)
 
 # --- Bug Setup Form (Before or during chat) ---
-with st.expander("📝 Bug Description & Code Snippet", expanded=not st.session_state.session_started):
+with st.expander("Bug Description & Code Snippet", expanded=not st.session_state.session_started):
     col_lang, _ = st.columns([2, 3])
     with col_lang:
         selected_lang = st.selectbox(
@@ -164,7 +163,7 @@ with st.expander("📝 Bug Description & Code Snippet", expanded=not st.session_
     col1, col2 = st.columns([1, 1], gap="medium")
 
     with col1:
-        st.markdown("**🎙️ Bug Description (Dictated or typed messy text)**")
+        st.markdown("**Bug Description (Dictated or typed messy text)**")
         desc_input = st.text_area(
             "What's going wrong?",
             value=st.session_state.bug_description,
@@ -174,7 +173,7 @@ with st.expander("📝 Bug Description & Code Snippet", expanded=not st.session_
         )
 
     with col2:
-        st.markdown("**💻 Code Snippet**")
+        st.markdown("**Code Snippet**")
         code_input = st.text_area(
             "Paste your code snippet:",
             value=st.session_state.code_snippet,
@@ -183,7 +182,7 @@ with st.expander("📝 Bug Description & Code Snippet", expanded=not st.session_
             label_visibility="collapsed"
         )
 
-    if st.button("🦆 Start Quacking with the Duck", type="primary", use_container_width=True):
+    if st.button("Start Debugging with the Duck", type="primary", use_container_width=True):
         if not desc_input.strip() and not code_input.strip():
             st.warning("Please provide at least a rough voice description or a code snippet to start debugging!")
         else:
@@ -217,7 +216,7 @@ if st.session_state.session_started:
         st.markdown(
             f"""
             <div style="font-size:0.95rem;">
-                <span class="badge-pill">🦆 Socratic Mode Active</span>
+                <span class="badge-pill">Socratic Mode Active</span>
                 <span class="badge-pill">Turn: {st.session_state.turn_count}</span>
                 <span class="badge-pill">{st.session_state.language}</span>
                 <span style="color:#777; margin-left:8px;">Rules: 1 question at a time. No code fixes allowed.</span>
@@ -227,9 +226,9 @@ if st.session_state.session_started:
         )
     with c_action:
         if not st.session_state.solved and not st.session_state.is_saving:
-            if st.button("🎉 I Solved It!", type="primary", use_container_width=True):
+            if st.button("I Solved It!", type="primary", use_container_width=True):
                 st.session_state.is_saving = True
-                with st.spinner("Quack! Analyzing the solution and extracting insights for your dashboard..."):
+                with st.spinner("Analyzing the solution and extracting insights for your dashboard..."):
                     extracted = prompts.extract_solved_json(
                         conversation=st.session_state.messages,
                         code_snippet=st.session_state.code_snippet,
@@ -251,7 +250,6 @@ if st.session_state.session_started:
                     st.session_state.solved_record = extracted
                     st.session_state.solved = True
                     st.session_state.is_saving = False
-                    st.balloons()
                 st.rerun()
 
     # Solved summary card if already marked solved
@@ -260,13 +258,13 @@ if st.session_state.session_started:
         st.markdown(
             f"""
             <div class="solved-box">
-                <h3 style="color:#2E7D32; margin-top:0;">🎉 Fantastic work! Bug #{rec.get('id', '')} Captured!</h3>
-                <p><b>🏷️ Bug Type:</b> <span class="badge-pill">{rec.get('bug_type')}</span>
-                   <b>🔍 Scope:</b> <span class="badge-pill">{rec.get('scope')}</span>
-                   <b>💻 Language:</b> <span class="badge-pill">{rec.get('language')}</span>
+                <h3 style="color:#2E7D32; margin-top:0;">Fantastic work! Bug #{rec.get('id', '')} Captured!</h3>
+                <p><b>Bug Type:</b> <span class="badge-pill">{rec.get('bug_type')}</span>
+                   <b>Scope:</b> <span class="badge-pill">{rec.get('scope')}</span>
+                   <b>Language:</b> <span class="badge-pill">{rec.get('language')}</span>
                 </p>
-                <p><b>🎯 Root Cause:</b> {rec.get('root_cause')}</p>
-                <p><b>💡 Key Lesson:</b> <i>"{rec.get('lesson')}"</i></p>
+                <p><b>Root Cause:</b> {rec.get('root_cause')}</p>
+                <p><b>Key Lesson:</b> <i>"{rec.get('lesson')}"</i></p>
                 <p style="color:#555; margin-bottom:0;">Saved to SQLite database! Head over to the <b>Dashboard</b> page in the sidebar to review your stats.</p>
             </div>
             """,
@@ -279,7 +277,7 @@ if st.session_state.session_started:
             with st.chat_message("user"):
                 st.write(message.get("content", ""))
         else:
-            with st.chat_message("assistant", avatar="🦆"):
+            with st.chat_message("assistant"):
                 st.write(message.get("content", ""))
 
     # Chat Input (if not marked solved)
@@ -292,7 +290,7 @@ if st.session_state.session_started:
             st.session_state.turn_count += 1
 
             # Get Duck's Socratic answer
-            with st.chat_message("assistant", avatar="🦆"):
+            with st.chat_message("assistant"):
                 with st.spinner("The Duck is thinking Socratically..."):
                     duck_reply = prompts.generate_socratic_response(
                         messages=st.session_state.messages,
@@ -309,7 +307,7 @@ else:
     st.markdown(
         """
         <div class="duck-card">
-            <h4>🦆 Welcome to Rubber Duck Debugging!</h4>
+            <h4>Welcome to Rubber Duck Debugging</h4>
             <p>
                 Legend says talking to a rubber duck on your desk helps you solve 90% of your bugs.
                 <b>Duck Debugger</b> takes that to the next level:
@@ -319,7 +317,7 @@ else:
                 <li><b>Pure Socratic guidance:</b> It will <i>never</i> just give you the answer. It asks questions to jog your brain.</li>
                 <li><b>Insight logger:</b> When you hit the "I Solved It!" button, it summarizes the root cause and tracks your patterns in SQLite.</li>
             </ul>
-            <p>Fill in your bug thoughts and snippet above, then click <b>Start Quacking with the Duck</b>!</p>
+            <p>Fill in your bug thoughts and snippet above, then click <b>Start Debugging with the Duck</b>.</p>
         </div>
         """,
         unsafe_allow_html=True

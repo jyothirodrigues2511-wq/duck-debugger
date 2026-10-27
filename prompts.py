@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 INITIAL_RETRY_DELAY = 1.0  # seconds, configurable in tests
 
-SOCRATIC_SYSTEM_PROMPT = """You are Duck Debugger, an empathetic, inquisitive, and wise Rubber Duck 🦆.
+SOCRATIC_SYSTEM_PROMPT = """You are Duck Debugger, an empathetic, inquisitive, and wise Rubber Duck.
 Your sole purpose is to help programmers find bugs on their own using the Socratic method.
 
 STRICT SAFETY & BEHAVIOR RULES (ABSOLUTE - NO EXCEPTIONS):
@@ -44,7 +44,7 @@ The output MUST be valid JSON adhering strictly to this schema:
 Output ONLY valid JSON.
 """
 
-PRACTICE_PROBLEM_PROMPT = """You are a senior programming mentor and Rubber Duck coach 🦆.
+PRACTICE_PROBLEM_PROMPT = """You are a senior programming mentor and Rubber Duck coach.
 The user has a recurring weak spot with: "{weak_spot}".
 
 Generate a short, fun, 3-minute practice puzzle in {language} that demonstrates a classic {weak_spot} bug.
@@ -420,7 +420,7 @@ def generate_practice_problem(
                 return raw_text
 
     # Curated fallback practice problem
-    return f"""### 🦆 Rubber Duck Quick Challenge: {clean_weak}
+    return f"""### Rubber Duck Quick Challenge: {clean_weak}
 
 **Scenario:**
 You are writing a function to grab the last `n` items from an activity log, but your QA tester says the oldest item in the window keeps disappearing!
