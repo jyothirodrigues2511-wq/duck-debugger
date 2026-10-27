@@ -49,6 +49,44 @@ class TestScope1To10Exhaustive(unittest.TestCase):
         self.assertIsInstance(res_emoji, str)
         self.assertTrue(res_emoji.endswith("?"))
 
+    def test_detect_user_breakthrough(self):
+        """Verifies detect_user_breakthrough handles positives, negations, case, and empty inputs."""
+        # Positives
+        self.assertTrue(prompts.detect_user_breakthrough("Aha!"))
+        self.assertTrue(prompts.detect_user_breakthrough("aha, now I see the bug"))
+        self.assertTrue(prompts.detect_user_breakthrough("I found it!"))
+        self.assertTrue(prompts.detect_user_breakthrough("I found the bug"))
+        self.assertTrue(prompts.detect_user_breakthrough("I see the bug now"))
+        self.assertTrue(prompts.detect_user_breakthrough("that's the bug"))
+        self.assertTrue(prompts.detect_user_breakthrough("That is the bug!"))
+        self.assertTrue(prompts.detect_user_breakthrough("Now I understand what's wrong"))
+        self.assertTrue(prompts.detect_user_breakthrough("I figured it out"))
+        self.assertTrue(prompts.detect_user_breakthrough("Got it!"))
+        self.assertTrue(prompts.detect_user_breakthrough("Solved it!"))
+        self.assertTrue(prompts.detect_user_breakthrough("Eureka!"))
+        self.assertTrue(prompts.detect_user_breakthrough("I haven't found the bug yet, wait, aha! I found it!"))
+        self.assertTrue(prompts.detect_user_breakthrough("I didn't see it before, but now I see the bug"))
+
+        # Negations
+        self.assertFalse(prompts.detect_user_breakthrough("I haven't found it"))
+        self.assertFalse(prompts.detect_user_breakthrough("I havent found it yet"))
+        self.assertFalse(prompts.detect_user_breakthrough("I have not found the bug"))
+        self.assertFalse(prompts.detect_user_breakthrough("I don't see the bug now"))
+        self.assertFalse(prompts.detect_user_breakthrough("I still didn't find the issue"))
+        self.assertFalse(prompts.detect_user_breakthrough("That's not the bug"))
+        self.assertFalse(prompts.detect_user_breakthrough("That is not the bug unfortunately"))
+        self.assertFalse(prompts.detect_user_breakthrough("No, that's not it"))
+        self.assertFalse(prompts.detect_user_breakthrough("I can't see the bug yet"))
+        self.assertFalse(prompts.detect_user_breakthrough("I still haven't figured it out"))
+
+        # Empty, whitespace, None, and normal inquiries
+        self.assertFalse(prompts.detect_user_breakthrough(""))
+        self.assertFalse(prompts.detect_user_breakthrough("   "))
+        self.assertFalse(prompts.detect_user_breakthrough(None))
+        self.assertFalse(prompts.detect_user_breakthrough("What do you think the bug is?"))
+        self.assertFalse(prompts.detect_user_breakthrough("Can you help me find it?"))
+        self.assertFalse(prompts.detect_user_breakthrough("How do I fix this?"))
+
     # ----------------------------------------------------
     # SCOPE 3: Socratic Guardrails & Anti-Jailbreak Rules
     # ----------------------------------------------------

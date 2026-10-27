@@ -55,6 +55,62 @@ Include:
 Do NOT give away the answer or fix!
 """
 
+def detect_user_breakthrough(text: Optional[str]) -> bool:
+    """
+    Detects if the user has reached an Aha! moment or discovered the root cause.
+    Properly handles case-insensitivity, punctuation, and clause-level negations
+    (e.g., 'I haven't found it yet' -> False, but 'Haven't found it... wait, AHA! I found it' -> True).
+    """
+    if not text or not isinstance(text, str) or not text.strip():
+        return False
+
+    raw = text.strip().lower()
+
+    # Split into clauses across sentence boundaries and contrastive conjunctions
+    clauses = re.split(r'[.!?;:\n]+|(?:\b(?:but|however|wait|although|though)\b)', raw)
+
+    breakthrough_patterns = [
+        re.compile(r'\baha\b'),
+        re.compile(r'\beureka\b'),
+        re.compile(r'\b(i(\x27ve|\x27m| have| am)?\s+)?found (it|the (bug|issue|problem|fix|error|cause))\b'),
+        re.compile(r'\b(now\s+)?i (see|get|understand|spotted|notice|found) (the|my) (bug|issue|problem|error|mistake)\b'),
+        re.compile(r'\bthat(\x27s| is) (the|my) (bug|issue|problem|error|mistake)\b'),
+        re.compile(r'\b(now\s+)?i (see|get|understand) (it|what\x27s wrong|what happened|why)\b'),
+        re.compile(r'\bi (finally\s+)?(figured|worked) it out\b'),
+        re.compile(r'\b(got|solved|fixed) it\b'),
+        re.compile(r'\bnow it makes sense\b'),
+    ]
+
+    negation_patterns = [
+        re.compile(r'\b(not|never|haven\x27t|havent|didn\x27t|didnt|don\x27t|dont|can\x27t|cant|cannot|couldn\x27t|couldnt|hardly|doubt|unsure|still)\b')
+    ]
+
+    for clause in clauses:
+        c = clause.strip()
+        if not c:
+            continue
+
+        for bp in breakthrough_patterns:
+            match = bp.search(c)
+            if match:
+                prefix = c[:match.start()]
+                has_negation = False
+                for np in negation_patterns:
+                    if np.search(prefix):
+                        has_negation = True
+                        break
+                if re.search(r'\b(not|never|no)\b', c):
+                    if re.search(r'\b(is|that\x27s|was)\s+(not|never)\b', c):
+                        has_negation = True
+                    if re.search(r'\b(not|never|haven\x27t|havent|didn\x27t|didnt|can\x27t|cant)\s+.*?\b(found|see|solved|get)\b', c):
+                        has_negation = True
+
+                if not has_negation:
+                    return True
+
+    return False
+
+
 def is_valid_gemini_api_key(key: Optional[str]) -> bool:
     """Checks whether a string resembles a valid Gemini API key rather than a placeholder."""
     if not key or not isinstance(key, str):
