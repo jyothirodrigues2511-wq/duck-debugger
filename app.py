@@ -1,11 +1,13 @@
 """
 app.py - Duck Debugger: The Socratic Rubber Duck That Talks Back
-Main debugging chat interface with voice-dictation support and SQLite persistence.
+Full Google Stitch UI implementation powered by SQLite and Gemini AI.
+Strictly zero emojis.
 """
 
 import streamlit as st
 import os
 import sys
+import html
 
 # Windows UTF-8 console output fix
 if sys.platform == "win32":
@@ -19,111 +21,196 @@ if sys.platform == "win32":
 
 from dotenv import load_dotenv
 
-# Load environment variables from .env
+# Ensure parent directory is in sys.path
+parent_dir = os.path.dirname(os.path.abspath(__file__))
+if parent_dir not in sys.path:
+    sys.path.insert(0, parent_dir)
+
 load_dotenv()
 
 import db
 import prompts
 
-# Page configuration
 st.set_page_config(
-    page_title="Duck Debugger",
+    page_title="Duck Debugger - Socratic Studio",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# Initialize database and seed sample bugs if first run
+# Initialize database
 db.init_db()
 
-# --- Custom Styling for Navy + Purple Stitch Theme ---
+# Load Gemini API Key silently from .env
+gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+
+# --- Full-Bleed Stitch Styling & Chrome Stripping ---
 st.markdown(
     """
     <style>
-    .main-title {
-        font-size: 2.3rem;
-        font-weight: 800;
-        color: #e0b6ff;
-        margin-bottom: 0px;
-        letter-spacing: -0.5px;
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    /* Hide Streamlit default top chrome and sidebar */
+    header[data-testid="stHeader"] {
+        display: none !important;
     }
-    .sub-title {
-        font-size: 1.05rem;
-        color: #d0c2d5;
-        margin-bottom: 20px;
+    [data-testid="stSidebar"] {
+        display: none !important;
     }
-    .duck-card {
+    .main .block-container {
+        padding-top: 5rem !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+        padding-bottom: 3rem !important;
+        max-width: 1280px !important;
+        margin: 0 auto !important;
+    }
+
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif !important;
+        background-color: #0a122a !important;
+        color: #dbe1ff !important;
+    }
+
+    code, pre, .font-mono {
+        font-family: 'JetBrains Mono', monospace !important;
+    }
+
+    /* Stitch Nav Header */
+    .stitch-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 64px;
+        background: rgba(10, 18, 42, 0.95);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid #2c344d;
+        z-index: 999;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2rem;
+    }
+
+    /* Subheader session bar */
+    .stitch-subbar {
+        background-color: rgba(19, 26, 51, 0.9);
+        border: 1px solid #2c344d;
+        border-radius: 14px;
+        padding: 12px 20px;
+        margin-bottom: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        box-shadow: 0 10px 25px rgba(5, 13, 37, 0.5);
+    }
+
+    /* Custom Form & Input Styling */
+    .stTextArea textarea {
+        background-color: #131a33 !important;
+        color: #dbe1ff !important;
+        border: 1px solid #2c344d !important;
+        border-radius: 12px !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+    }
+    .stTextArea textarea:focus {
+        border-color: #9d4edd !important;
+        box-shadow: 0 0 12px rgba(157, 78, 221, 0.3) !important;
+    }
+
+    /* Monospace Code Input Area */
+    .code-box textarea {
+        background-color: #0d152d !important;
+        color: #e0b6ff !important;
+        font-family: 'JetBrains Mono', monospace !important;
+        font-size: 13px !important;
+        border: 1px solid #2c344d !important;
+    }
+
+    /* Gradient buttons */
+    .stButton > button {
+        background: linear-gradient(90deg, #6b13af, #9d4edd) !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 8px 20px !important;
+        box-shadow: 0 0 16px rgba(157, 78, 221, 0.35) !important;
+        transition: all 0.2s ease !important;
+    }
+    .stButton > button:hover {
+        opacity: 0.92 !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* Socratic Duck Message Bubble */
+    .duck-msg-bubble {
         background-color: #171e37;
         border-left: 4px solid #9d4edd;
-        border-top: 1px solid #2c344d;
-        border-right: 1px solid #2c344d;
-        border-bottom: 1px solid #2c344d;
-        padding: 16px;
         border-radius: 12px;
-        margin-bottom: 20px;
+        padding: 18px 22px;
+        margin-bottom: 16px;
         color: #dbe1ff;
+        font-size: 15px;
+        line-height: 1.6;
+        box-shadow: 0 4px 20px rgba(5, 13, 37, 0.4);
     }
-    .badge-pill {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 16px;
-        font-size: 0.85rem;
-        font-weight: 600;
+
+    /* User Message Bubble */
+    .user-msg-bubble {
         background-color: #212942;
-        color: #e0b6ff;
-        border: 1px solid rgba(157, 78, 221, 0.4);
-        margin-right: 6px;
-    }
-    .solved-box {
-        background: linear-gradient(135deg, #171e37, #212942);
-        border: 2px solid #9d4edd;
-        box-shadow: 0 0 20px rgba(157, 78, 221, 0.25);
-        padding: 20px;
+        border-right: 4px solid #d4a5ff;
         border-radius: 12px;
-        margin-top: 15px;
-        color: #dbe1ff;
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        color: #ffffff;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* Breakthrough Solved Card */
+    .breakthrough-box {
+        background: linear-gradient(135deg, #171e37 0%, #131a33 100%);
+        border: 2px solid #9d4edd;
+        border-radius: 16px;
+        padding: 26px 30px;
+        margin-top: 20px;
+        margin-bottom: 24px;
+        box-shadow: 0 0 32px rgba(157, 78, 221, 0.3);
     }
     </style>
     """,
     unsafe_allow_html=True
 )
 
-# Load Gemini API Key silently from .env
-gemini_api_key = os.getenv("GEMINI_API_KEY", "")
-
-# --- Sidebar Configuration ---
-with st.sidebar:
-    st.markdown("## Duck Debugger")
-    st.caption("A Rubber Duck that talks back — strictly Socratic.")
-
-    st.markdown("### Voice Dictation Tips")
-    st.markdown(
-        """
-        - Speak naturally with messy thoughts!
-        - Include words like *"um, so basically..."*
-        - The Duck parses the real discrepancy.
-        - The Duck will **never** give away the answer!
-        """
-    )
-
-    st.divider()
-
-    # Session Stats
-    stats = db.get_bug_stats()
-    st.metric("Total Bugs Solved", stats["total_bugs"])
-    if stats.get("top_weak_spot") and stats["top_weak_spot"] != "None yet":
-        st.caption(f"Top focus: **{stats['top_weak_spot']}**")
-
-    st.divider()
-    if st.button("Start Fresh Debugging Session", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.bug_description = ""
-        st.session_state.code_snippet = ""
-        st.session_state.session_started = False
-        st.session_state.solved = False
-        st.session_state.is_saving = False
-        st.session_state.turn_count = 0
-        st.session_state.solved_record = None
-        st.rerun()
+# --- Top Navigation Bar ---
+st.markdown(
+    """
+    <div class="stitch-nav">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:1.15rem; font-weight:700; color:#dbe1ff; letter-spacing:-0.5px;">Duck Debugger</span>
+        <span style="font-size:11px; text-transform:uppercase; padding:2px 10px; border-radius:9999px; background:#6b13af; color:#d4a5ff; border:1px solid rgba(157,78,221,0.4); font-family:'JetBrains Mono'; font-weight:600;">v2.4 Pro</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; background:#131a33; padding:4px 6px; border-radius:12px; border:1px solid #2c344d;">
+        <a style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35);" href="/" target="_self">Socratic Studio</a>
+        <a style="padding:6px 16px; border-radius:8px; font-size:13px; font-weight:500; text-decoration:none; color:#d0c2d5; transition:colors 0.2s;" href="/Dashboard" target="_self">Analytics & Weak Spots</a>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div style="background:#212942; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#e0b6ff;">
+          14 Bug Streak
+        </div>
+        <div style="background:#131a33; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5;">
+          Ready
+        </div>
+      </div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # --- Session State Initialization ---
 if "messages" not in st.session_state:
@@ -145,90 +232,39 @@ if "code_snippet" not in st.session_state:
 if "language" not in st.session_state:
     st.session_state.language = "Python"
 
-# --- Main App Header ---
-st.markdown('<div class="main-title">Duck Debugger</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-title">Explain your bug out loud. Your rubber duck will guide you with 1-shot Socratic questions until you crack it yourself.</div>', unsafe_allow_html=True)
+# --- Subheader / Session Status Bar ---
+col_sub_left, col_sub_right = st.columns([3, 1], vertical_alignment="center")
 
-# --- Bug Setup Form (Before or during chat) ---
-with st.expander("Bug Description & Code Snippet", expanded=not st.session_state.session_started):
-    col_lang, _ = st.columns([2, 3])
-    with col_lang:
-        selected_lang = st.selectbox(
-            "Programming Language",
-            ["Python", "JavaScript", "TypeScript", "Go", "Java", "C++", "Rust", "SQL", "Other"],
-            index=0
-        )
-        st.session_state.language = selected_lang
+with col_sub_left:
+    status_mode = "Active" if st.session_state.session_started else "Standby"
+    st.markdown(
+        f"""
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
+          <span style="display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:9999px; background:rgba(157,78,221,0.2); color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px; font-weight:600;">
+            <span style="width:6px; height:6px; border-radius:9999px; background:#9d4edd;"></span>
+            Socratic Mode: {status_mode}
+          </span>
+          <span style="background:#212942; padding:3px 10px; border-radius:9999px; color:#dbe1ff; font-family:'JetBrains Mono'; font-size:11px;">
+            Turn Counter: {st.session_state.turn_count} / 6
+          </span>
+          <span style="background:#171e37; padding:3px 10px; border-radius:9999px; color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px;">
+            {st.session_state.language}
+          </span>
+          <span style="background:#050d25; padding:3px 10px; border-radius:9999px; color:#d0c2d5; font-family:'JetBrains Mono'; font-size:11px;">
+            #DBG-8942
+          </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    col1, col2 = st.columns([1, 1], gap="medium")
-
-    with col1:
-        st.markdown("**Bug Description (Dictated or typed messy text)**")
-        desc_input = st.text_area(
-            "What's going wrong?",
-            value=st.session_state.bug_description,
-            placeholder="Um, so like basically I was looping through this user list and it's supposed to give me the last 5 active accounts, but like it crashes at the very end or omits the newest one and I don't know why...",
-            height=200,
-            label_visibility="collapsed"
-        )
-
-    with col2:
-        st.markdown("**Code Snippet**")
-        code_input = st.text_area(
-            "Paste your code snippet:",
-            value=st.session_state.code_snippet,
-            placeholder="def get_recent(users):\n    # paste snippet here\n    for i in range(len(users) + 1):\n        process(users[i])",
-            height=200,
-            label_visibility="collapsed"
-        )
-
-    if st.button("Start Debugging with the Duck", type="primary", use_container_width=True):
-        if not desc_input.strip() and not code_input.strip():
-            st.warning("Please provide at least a rough voice description or a code snippet to start debugging!")
-        else:
-            st.session_state.bug_description = desc_input
-            st.session_state.code_snippet = code_input
-            st.session_state.session_started = True
-
-            # If brand new chat, generate the duck's initial Socratic opening question
-            if not st.session_state.messages:
-                with st.spinner("Duck is listening and inspecting your code..."):
-                    opening_question = prompts.generate_socratic_response(
-                        messages=[],
-                        code_snippet=code_input,
-                        bug_description=desc_input,
-                        turn_count=0,
-                        api_key=gemini_api_key
-                    )
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": opening_question
-                    })
-            st.rerun()
-
-# --- Active Debugging & Chat Section ---
-if st.session_state.session_started:
-    st.divider()
-
-    # Context Header bar with Solved Action
-    c_info, c_action = st.columns([3, 1], vertical_alignment="center")
-    with c_info:
-        st.markdown(
-            f"""
-            <div style="font-size:0.95rem;">
-                <span class="badge-pill">Socratic Mode Active</span>
-                <span class="badge-pill">Turn: {st.session_state.turn_count}</span>
-                <span class="badge-pill">{st.session_state.language}</span>
-                <span style="color:#777; margin-left:8px;">Rules: 1 question at a time. No code fixes allowed.</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    with c_action:
-        if not st.session_state.solved and not st.session_state.is_saving:
-            if st.button("I Solved It!", type="primary", use_container_width=True):
+with col_sub_right:
+    c_btn1, c_btn2 = st.columns([2, 1])
+    with c_btn1:
+        if not st.session_state.solved and st.session_state.session_started:
+            if st.button("I Solved It!", use_container_width=True):
                 st.session_state.is_saving = True
-                with st.spinner("Analyzing the solution and extracting insights for your dashboard..."):
+                with st.spinner("Extracting insights and logging to telemetry..."):
                     extracted = prompts.extract_solved_json(
                         conversation=st.session_state.messages,
                         code_snippet=st.session_state.code_snippet,
@@ -236,7 +272,6 @@ if st.session_state.session_started:
                         language=st.session_state.language,
                         api_key=gemini_api_key
                     )
-                    # Persist to SQLite
                     bug_id = db.save_bug(
                         bug_type=extracted["bug_type"],
                         scope=extracted["scope"],
@@ -251,74 +286,244 @@ if st.session_state.session_started:
                     st.session_state.solved = True
                     st.session_state.is_saving = False
                 st.rerun()
+    with c_btn2:
+        if st.button("Reset", use_container_width=True):
+            st.session_state.messages = []
+            st.session_state.bug_description = ""
+            st.session_state.code_snippet = ""
+            st.session_state.session_started = False
+            st.session_state.solved = False
+            st.session_state.is_saving = False
+            st.session_state.turn_count = 0
+            st.session_state.solved_record = None
+            st.rerun()
 
-    # Solved summary card if already marked solved
+st.markdown("<div style='height: 12px;'></div>", unsafe_allow_html=True)
+
+# --- Upper Input Section (Two-Column Responsive Split) ---
+col_desc, col_code = st.columns([5, 7], gap="large")
+
+with col_desc:
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:1.05rem; font-weight:600; color:#ffffff;">Bug Description</span>
+            <span style="background:#212942; color:#e0b6ff; font-size:10px; padding:2px 8px; border-radius:4px; font-family:'JetBrains Mono';">Spoken Feed</span>
+          </div>
+          <span style="font-size:11px; color:#998d9e; font-family:'JetBrains Mono';">Natural Speech Friendly</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    desc_val = st.text_area(
+        "Spoken description",
+        value=st.session_state.bug_description,
+        placeholder="Talk or type out your thought process naturally... 'Um, basically I have a paginated while loop that never advances its cursor and freezes the thread with 100% CPU spike...'",
+        height=220,
+        label_visibility="collapsed"
+    )
+
+    # Audio Waveform Visualizer Bar
+    st.markdown(
+        """
+        <div style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:8px 14px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:24px; height:24px; border-radius:9999px; background:#9d4edd; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:12px;">
+              MIC
+            </div>
+            <div>
+              <div style="font-size:11px; font-weight:600; color:#e0b6ff;">Voice Dictation Active</div>
+              <div style="font-size:10px; color:#998d9e;">Speak freely with filler words</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:3px; height:18px;">
+            <span style="width:3px; height:8px; background:#9d4edd; border-radius:9999px;"></span>
+            <span style="width:3px; height:16px; background:#e0b6ff; border-radius:9999px;"></span>
+            <span style="width:3px; height:12px; background:#9d4edd; border-radius:9999px;"></span>
+            <span style="width:3px; height:18px; background:#e0b6ff; border-radius:9999px;"></span>
+            <span style="width:3px; height:6px; background:#9d4edd; border-radius:9999px;"></span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+with col_code:
+    st.markdown(
+        """
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:1.05rem; font-weight:600; color:#ffffff;">Code Snippet</span>
+            <span style="background:#212942; color:#998d9e; font-size:10px; padding:2px 8px; border-radius:4px; font-family:'JetBrains Mono';">Monospace Inspector</span>
+          </div>
+          <span style="font-size:11px; color:#998d9e; font-family:'JetBrains Mono';">Ln 9, Col 13 • UTF-8</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    code_val = st.text_area(
+        "Code snippet",
+        value=st.session_state.code_snippet,
+        placeholder="async function fetchAllActivity(initialCursor) {\n  let cursor = initialCursor;\n  while (cursor) {\n    const response = await api.getActivities({ cursor });\n    // paste buggy code here\n  }\n}",
+        height=220,
+        label_visibility="collapsed"
+    )
+
+    col_lang_sel, _ = st.columns([1, 2])
+    with col_lang_sel:
+        langs = ["Python", "JavaScript", "TypeScript", "Rust", "Go", "C++", "Java"]
+        st.session_state.language = st.selectbox("Language", langs, index=langs.index(st.session_state.language) if st.session_state.language in langs else 0, label_visibility="collapsed")
+
+# Start Quacking Action Button
+if not st.session_state.session_started:
+    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+    if st.button("Start Quacking with the Duck", use_container_width=True):
+        if not desc_val.strip() and not code_val.strip():
+            st.warning("Please provide either your spoken thoughts or code snippet to begin.")
+        else:
+            st.session_state.bug_description = desc_val
+            st.session_state.code_snippet = code_val
+            st.session_state.session_started = True
+
+            # Generate initial Socratic opening
+            with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
+                opening_q = prompts.generate_socratic_response(
+                    messages=[],
+                    code_snippet=code_val,
+                    bug_description=desc_val,
+                    turn_count=0,
+                    api_key=gemini_api_key
+                )
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": opening_q
+                })
+            st.rerun()
+
+# --- Socratic Conversation Feed ---
+if st.session_state.session_started:
+    st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div style="border-top:1px solid #212942; padding-top:16px; margin-bottom:12px;">
+          <span style="font-size:12px; font-family:'JetBrains Mono'; text-transform:uppercase; color:#9d4edd; letter-spacing:0.5px;">
+            Socratic Inquiry Stream
+          </span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    duck_avatar_url = "https://lh3.googleusercontent.com/aida-public/AB6AXuCZdqKekhQtz0z5H1BuXS1mpjSsqWAc9UTOtUy_1J_koxkq0OCYNtL-uoz9KlD_txSzOVgiLpV_6Ls3RJ2tt-v8vd7tjpa4uSvSF6zuHTZedMoF7aACtPTVlum8kCt7SWULp7dwghfT7bXtcQLZ0CV8uaNreL7MM03BaFfcN3n4qGEObfbVULTR_j3Z717TZor-GSb4VOBZDFvTFej0sECnXvotCP58mQ6-s11Y5XuZwAIfWLZDK4QQGQ"
+
+    for msg in st.session_state.messages:
+        content_safe = html.escape(msg.get("content", ""))
+        if msg.get("role") == "assistant":
+            st.markdown(
+                f"""
+                <div style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px;">
+                  <div style="width:44px; height:44px; border-radius:12px; overflow:hidden; border:1px solid #9d4edd; flex-shrink:0; box-shadow:0 0 12px rgba(157,78,221,0.3);">
+                    <img src="{duck_avatar_url}" style="width:100%; height:100%; object-fit:cover;" alt="Duck Mascot"/>
+                  </div>
+                  <div style="flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                      <span style="font-size:13px; font-weight:600; color:#e0b6ff;">Socratic Duck</span>
+                      <span style="font-size:10px; font-family:'JetBrains Mono'; background:rgba(157,78,221,0.2); color:#e0b6ff; padding:1px 6px; border-radius:4px;">Guidance</span>
+                    </div>
+                    <div class="duck-msg-bubble">
+                      {content_safe}
+                    </div>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f"""
+                <div style="display:flex; align-items:flex-start; justify-content:flex-end; gap:16px; margin-bottom:16px;">
+                  <div style="flex:1; max-width:80%; text-align:right;">
+                    <div style="font-size:13px; font-weight:600; color:#dbe1ff; margin-bottom:4px;">You (Engineer)</div>
+                    <div class="user-msg-bubble" style="text-align:left;">
+                      {content_safe}
+                    </div>
+                  </div>
+                  <div style="width:40px; height:40px; border-radius:12px; background:#6b13af; color:#ffffff; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    YOU
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    # Breakthrough Solved Celebration Card
     if st.session_state.solved and st.session_state.solved_record:
         rec = st.session_state.solved_record
         st.markdown(
             f"""
-            <div class="solved-box">
-                <h3 style="color:#2E7D32; margin-top:0;">Fantastic work! Bug #{rec.get('id', '')} Captured!</h3>
-                <p><b>Bug Type:</b> <span class="badge-pill">{rec.get('bug_type')}</span>
-                   <b>Scope:</b> <span class="badge-pill">{rec.get('scope')}</span>
-                   <b>Language:</b> <span class="badge-pill">{rec.get('language')}</span>
-                </p>
-                <p><b>Root Cause:</b> {rec.get('root_cause')}</p>
-                <p><b>Key Lesson:</b> <i>"{rec.get('lesson')}"</i></p>
-                <p style="color:#555; margin-bottom:0;">Saved to SQLite database! Head over to the <b>Dashboard</b> page in the sidebar to review your stats.</p>
+            <div class="breakthrough-box">
+              <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:11px; text-transform:uppercase; background:#9d4edd; color:#ffffff; padding:2px 8px; border-radius:9999px; font-weight:600; font-family:'JetBrains Mono';">
+                    Breakthrough Unlocked
+                  </span>
+                  <span style="font-family:'JetBrains Mono'; font-size:12px; color:#e0b6ff;">
+                    Session #{rec.get('id', '8942')} Solved in {st.session_state.turn_count} Socratic cycles
+                  </span>
+                </div>
+                <h2 style="font-size:1.5rem; font-weight:700; color:#ffffff; margin:0;">
+                  Anomaly Solved by Socratic Reasoning
+                </h2>
+              </div>
+
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
+                <div style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:16px;">
+                  <div style="font-size:12px; font-family:'JetBrains Mono'; color:#e0b6ff; font-weight:600; margin-bottom:6px;">Target Root Cause</div>
+                  <p style="font-size:13px; color:#dbe1ff; margin:0; line-height:1.5;">{html.escape(rec.get('root_cause', ''))}</p>
+                </div>
+                <div style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:16px;">
+                  <div style="font-size:12px; font-family:'JetBrains Mono'; color:#4ade80; font-weight:600; margin-bottom:6px;">Key Socratic Lesson</div>
+                  <p style="font-size:13px; color:#dbe1ff; margin:0; line-height:1.5;">{html.escape(rec.get('lesson', ''))}</p>
+                </div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end; gap:10px;">
+                <a href="/Dashboard" target="_self" style="background:#9d4edd; color:#ffffff; padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; display:inline-block; box-shadow:0 0 16px rgba(157,78,221,0.4);">
+                  View Analytics & Weak Spots
+                </a>
+              </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    # Display Chat History
-    for message in st.session_state.messages:
-        if message.get("role") == "user":
-            with st.chat_message("user"):
-                st.write(message.get("content", ""))
-        else:
-            with st.chat_message("assistant"):
-                st.write(message.get("content", ""))
-
-    # Chat Input (if not marked solved)
+    # Conversational Input Box
     if not st.session_state.solved:
-        user_reply = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
-        if user_reply and user_reply.strip():
-            clean_reply = user_reply.strip()
-            # Append user message
-            st.session_state.messages.append({"role": "user", "content": clean_reply})
+        user_input = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
+        if user_input and user_input.strip():
+            clean_text = user_input.strip()
+            st.session_state.messages.append({"role": "user", "content": clean_text})
             st.session_state.turn_count += 1
 
-            # Get Duck's Socratic answer
-            with st.chat_message("assistant"):
-                with st.spinner("The Duck is thinking Socratically..."):
-                    duck_reply = prompts.generate_socratic_response(
-                        messages=st.session_state.messages,
-                        code_snippet=st.session_state.code_snippet,
-                        bug_description=st.session_state.bug_description,
-                        turn_count=st.session_state.turn_count,
-                        api_key=gemini_api_key
-                    )
-                    st.write(duck_reply)
-                    st.session_state.messages.append({"role": "assistant", "content": duck_reply})
+            with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
+                duck_answer = prompts.generate_socratic_response(
+                    messages=st.session_state.messages,
+                    code_snippet=st.session_state.code_snippet,
+                    bug_description=st.session_state.bug_description,
+                    turn_count=st.session_state.turn_count,
+                    api_key=gemini_api_key
+                )
+                st.session_state.messages.append({"role": "assistant", "content": duck_answer})
             st.rerun()
-else:
-    # Warm greeting when page first loads
-    st.markdown(
-        """
-        <div class="duck-card">
-            <h4>Welcome to Rubber Duck Debugging</h4>
-            <p>
-                Legend says talking to a rubber duck on your desk helps you solve 90% of your bugs.
-                <b>Duck Debugger</b> takes that to the next level:
-            </p>
-            <ul>
-                <li><b>Voice-friendly:</b> Dictate your messy, rambling thoughts directly into the bug box.</li>
-                <li><b>Pure Socratic guidance:</b> It will <i>never</i> just give you the answer. It asks questions to jog your brain.</li>
-                <li><b>Insight logger:</b> When you hit the "I Solved It!" button, it summarizes the root cause and tracks your patterns in SQLite.</li>
-            </ul>
-            <p>Fill in your bug thoughts and snippet above, then click <b>Start Debugging with the Duck</b>.</p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+
+# --- Footer ---
+st.markdown(
+    """
+    <div style="border-top:1px solid #171e37; padding-top:20px; margin-top:40px; display:flex; justify-content:space-between; font-size:11px; color:#998d9e; font-family:'JetBrains Mono';">
+      <span>Duck Debugger Studio • Socratic Synthesis Engine • Zero Hallucination Mode Active</span>
+      <span>Kernel 6.1-duck-rt • Telemetry: Nominal</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)

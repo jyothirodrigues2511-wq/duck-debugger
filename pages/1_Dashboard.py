@@ -38,7 +38,29 @@ import streamlit.components.v1 as components
 st.set_page_config(
     page_title="Duck Debugger - Analytics & Weak Spots",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
+)
+
+# Hide Streamlit default chrome so Stitch UI occupies the whole webpage
+st.markdown(
+    """
+    <style>
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    [data-testid="stSidebar"] {
+        display: none !important;
+    }
+    .main .block-container {
+        padding-top: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        padding-bottom: 0 !important;
+        max-width: 100% !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 # Initialize database
