@@ -1,13 +1,14 @@
 """
 app.py - Duck Debugger: The Socratic Rubber Duck That Talks Back
 Full Google Stitch UI implementation powered by SQLite and Gemini AI.
-Strictly zero emojis.
+Robust state machine, dual entry-point trigger, zero emojis.
 """
 
 import streamlit as st
 import os
 import sys
 import html
+import logging
 
 # Windows UTF-8 console output fix
 if sys.platform == "win32":
@@ -30,6 +31,8 @@ load_dotenv()
 
 import db
 import prompts
+
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Duck Debugger - Socratic Studio",
@@ -92,21 +95,6 @@ st.markdown(
         padding: 0 2rem;
     }
 
-    /* Subheader session bar */
-    .stitch-subbar {
-        background-color: rgba(19, 26, 51, 0.9);
-        border: 1px solid #2c344d;
-        border-radius: 14px;
-        padding: 12px 20px;
-        margin-bottom: 24px;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        box-shadow: 0 10px 25px rgba(5, 13, 37, 0.5);
-    }
-
     /* Custom Form & Input Styling */
     .stTextArea textarea {
         background-color: #131a33 !important;
@@ -122,15 +110,6 @@ st.markdown(
         box-shadow: 0 0 12px rgba(157, 78, 221, 0.3) !important;
     }
 
-    /* Monospace Code Input Area */
-    .code-box textarea {
-        background-color: #0d152d !important;
-        color: #e0b6ff !important;
-        font-family: 'JetBrains Mono', monospace !important;
-        font-size: 13px !important;
-        border: 1px solid #2c344d !important;
-    }
-
     /* Gradient buttons */
     .stButton > button {
         background: linear-gradient(90deg, #6b13af, #9d4edd) !important;
@@ -138,7 +117,7 @@ st.markdown(
         font-weight: 600 !important;
         border: none !important;
         border-radius: 10px !important;
-        padding: 8px 20px !important;
+        padding: 10px 24px !important;
         box-shadow: 0 0 16px rgba(157, 78, 221, 0.35) !important;
         transition: all 0.2s ease !important;
     }
@@ -225,18 +204,18 @@ if "turn_count" not in st.session_state:
     st.session_state.turn_count = 0
 if "solved_record" not in st.session_state:
     st.session_state.solved_record = None
-if "bug_description" not in st.session_state:
-    st.session_state.bug_description = ""
-if "code_snippet" not in st.session_state:
-    st.session_state.code_snippet = ""
-if "language" not in st.session_state:
-    st.session_state.language = "Python"
+if "bug_desc_input" not in st.session_state:
+    st.session_state.bug_desc_input = ""
+if "code_snippet_input" not in st.session_state:
+    st.session_state.code_snippet_input = ""
+if "selected_language" not in st.session_state:
+    st.session_state.selected_language = "Python"
 
 # --- Subheader / Session Status Bar ---
 col_sub_left, col_sub_right = st.columns([3, 1], vertical_alignment="center")
 
 with col_sub_left:
-    status_mode = "Active" if st.session_state.session_started else "Standby"
+    status_mode = "Active" if len(st.session_state.messages) > 0 else "Standby"
     st.markdown(
         f"""
         <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px;">
@@ -248,7 +227,7 @@ with col_sub_left:
             Turn Counter: {st.session_state.turn_count} / 6
           </span>
           <span style="background:#171e37; padding:3px 10px; border-radius:9999px; color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px;">
-            {st.session_state.language}
+            {html.escape(st.session_state.selected_language)}
           </span>
           <span style="background:#050d25; padding:3px 10px; border-radius:9999px; color:#d0c2d5; font-family:'JetBrains Mono'; font-size:11px;">
             #DBG-8942
@@ -261,25 +240,35 @@ with col_sub_left:
 with col_sub_right:
     c_btn1, c_btn2 = st.columns([2, 1])
     with c_btn1:
-        if not st.session_state.solved and st.session_state.session_started:
+        if not st.session_state.solved and len(st.session_state.messages) > 0:
             if st.button("I Solved It!", use_container_width=True):
                 st.session_state.is_saving = True
                 with st.spinner("Extracting insights and logging to telemetry..."):
-                    extracted = prompts.extract_solved_json(
-                        conversation=st.session_state.messages,
-                        code_snippet=st.session_state.code_snippet,
-                        bug_description=st.session_state.bug_description,
-                        language=st.session_state.language,
-                        api_key=gemini_api_key
-                    )
+                    try:
+                        extracted = prompts.extract_solved_json(
+                            conversation=st.session_state.messages,
+                            code_snippet=st.session_state.code_snippet_input,
+                            bug_description=st.session_state.bug_desc_input,
+                            language=st.session_state.selected_language,
+                            api_key=gemini_api_key
+                        )
+                    except Exception as err:
+                        logger.warning("Error extracting JSON, using fallback: %s", err)
+                        extracted = {
+                            "bug_type": "Logic",
+                            "scope": "logic",
+                            "root_cause": "Issue resolved through Socratic inquiry.",
+                            "lesson": "Trace state mutations line-by-line.",
+                            "language": st.session_state.selected_language
+                        }
                     bug_id = db.save_bug(
-                        bug_type=extracted["bug_type"],
-                        scope=extracted["scope"],
-                        root_cause=extracted["root_cause"],
-                        lesson=extracted["lesson"],
-                        language=extracted["language"],
-                        description=st.session_state.bug_description,
-                        code_snippet=st.session_state.code_snippet
+                        bug_type=extracted.get("bug_type", "General"),
+                        scope=extracted.get("scope", "logic"),
+                        root_cause=extracted.get("root_cause", ""),
+                        lesson=extracted.get("lesson", ""),
+                        language=extracted.get("language", st.session_state.selected_language),
+                        description=st.session_state.bug_desc_input,
+                        code_snippet=st.session_state.code_snippet_input
                     )
                     extracted["id"] = bug_id
                     st.session_state.solved_record = extracted
@@ -289,8 +278,8 @@ with col_sub_right:
     with c_btn2:
         if st.button("Reset", use_container_width=True):
             st.session_state.messages = []
-            st.session_state.bug_description = ""
-            st.session_state.code_snippet = ""
+            st.session_state.bug_desc_input = ""
+            st.session_state.code_snippet_input = ""
             st.session_state.session_started = False
             st.session_state.solved = False
             st.session_state.is_saving = False
@@ -318,8 +307,8 @@ with col_desc:
     )
     desc_val = st.text_area(
         "Spoken description",
-        value=st.session_state.bug_description,
-        placeholder="Talk or type out your thought process naturally... 'Um, basically I have a paginated while loop that never advances its cursor and freezes the thread with 100% CPU spike...'",
+        key="bug_desc_input",
+        placeholder="Talk or type out your thought process naturally... 'Um, basically I have a paginated while loop that never advances its cursor and freezes the browser thread with 100% CPU spike...'",
         height=220,
         label_visibility="collapsed"
     )
@@ -329,7 +318,7 @@ with col_desc:
         """
         <div style="background:#0d152d; border:1px solid #2c344d; border-radius:10px; padding:8px 14px; margin-top:8px; display:flex; align-items:center; justify-content:space-between;">
           <div style="display:flex; align-items:center; gap:8px;">
-            <div style="width:24px; height:24px; border-radius:9999px; background:#9d4edd; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:12px;">
+            <div style="width:24px; height:24px; border-radius:9999px; background:#9d4edd; display:flex; align-items:center; justify-content:center; color:#ffffff; font-size:11px; font-weight:700;">
               MIC
             </div>
             <div>
@@ -364,7 +353,7 @@ with col_code:
     )
     code_val = st.text_area(
         "Code snippet",
-        value=st.session_state.code_snippet,
+        key="code_snippet_input",
         placeholder="async function fetchAllActivity(initialCursor) {\n  let cursor = initialCursor;\n  while (cursor) {\n    const response = await api.getActivities({ cursor });\n    // paste buggy code here\n  }\n}",
         height=220,
         label_visibility="collapsed"
@@ -373,36 +362,58 @@ with col_code:
     col_lang_sel, _ = st.columns([1, 2])
     with col_lang_sel:
         langs = ["Python", "JavaScript", "TypeScript", "Rust", "Go", "C++", "Java"]
-        st.session_state.language = st.selectbox("Language", langs, index=langs.index(st.session_state.language) if st.session_state.language in langs else 0, label_visibility="collapsed")
+        st.session_state.selected_language = st.selectbox(
+            "Language",
+            langs,
+            index=langs.index(st.session_state.selected_language) if st.session_state.selected_language in langs else 0,
+            label_visibility="collapsed"
+        )
 
-# Start Quacking Action Button
-if not st.session_state.session_started:
-    st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+# Helper function to trigger Socratic Question
+def trigger_socratic_turn(user_followup=None):
+    safe_code = st.session_state.code_snippet_input.strip()
+    safe_desc = st.session_state.bug_desc_input.strip()
+
+    if user_followup:
+        st.session_state.messages.append({"role": "user", "content": user_followup})
+        st.session_state.turn_count += 1
+
+    with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
+        try:
+            duck_q = prompts.generate_socratic_response(
+                messages=st.session_state.messages,
+                code_snippet=safe_code,
+                bug_description=safe_desc,
+                turn_count=st.session_state.turn_count,
+                api_key=gemini_api_key
+            )
+        except Exception as e:
+            logger.warning("Gemini Socratic call exception: %s. Using heuristic.", e)
+            duck_q = prompts._generate_offline_socratic_response(
+                st.session_state.turn_count,
+                safe_desc,
+                safe_code,
+                st.session_state.messages
+            )
+
+        if not duck_q or not duck_q.strip():
+            duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
+
+        st.session_state.messages.append({"role": "assistant", "content": duck_q})
+        st.session_state.session_started = True
+
+# Prominent "Start Quacking with the Duck" Button (always visible when no messages yet)
+if len(st.session_state.messages) == 0:
+    st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
     if st.button("Start Quacking with the Duck", use_container_width=True):
         if not desc_val.strip() and not code_val.strip():
-            st.warning("Please provide either your spoken thoughts or code snippet to begin.")
+            st.warning("Please provide either a bug description or code snippet above to begin.")
         else:
-            st.session_state.bug_description = desc_val
-            st.session_state.code_snippet = code_val
-            st.session_state.session_started = True
-
-            # Generate initial Socratic opening
-            with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
-                opening_q = prompts.generate_socratic_response(
-                    messages=[],
-                    code_snippet=code_val,
-                    bug_description=desc_val,
-                    turn_count=0,
-                    api_key=gemini_api_key
-                )
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": opening_q
-                })
+            trigger_socratic_turn()
             st.rerun()
 
 # --- Socratic Conversation Feed ---
-if st.session_state.session_started:
+if len(st.session_state.messages) > 0 or st.session_state.session_started:
     st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
     st.markdown(
         """
@@ -498,24 +509,13 @@ if st.session_state.session_started:
             unsafe_allow_html=True
         )
 
-    # Conversational Input Box
-    if not st.session_state.solved:
-        user_input = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
-        if user_input and user_input.strip():
-            clean_text = user_input.strip()
-            st.session_state.messages.append({"role": "user", "content": clean_text})
-            st.session_state.turn_count += 1
-
-            with st.spinner("Duck is analyzing and preparing Socratic guidance..."):
-                duck_answer = prompts.generate_socratic_response(
-                    messages=st.session_state.messages,
-                    code_snippet=st.session_state.code_snippet,
-                    bug_description=st.session_state.bug_description,
-                    turn_count=st.session_state.turn_count,
-                    api_key=gemini_api_key
-                )
-                st.session_state.messages.append({"role": "assistant", "content": duck_answer})
-            st.rerun()
+# Conversational Input Box (always active at the bottom)
+if not st.session_state.solved:
+    user_input = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
+    if user_input and user_input.strip():
+        clean_text = user_input.strip()
+        trigger_socratic_turn(user_followup=clean_text)
+        st.rerun()
 
 # --- Footer ---
 st.markdown(
