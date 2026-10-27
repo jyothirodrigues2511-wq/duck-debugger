@@ -12,7 +12,8 @@ import time
 from unittest.mock import MagicMock, patch
 
 # Ensure target workspace is in path
-WORKSPACE = r"C:\Users\Jyothi Rodrigues\.gemini\antigravity\scratch\duck-debugger"
+from pathlib import Path
+WORKSPACE = str(Path(__file__).resolve().parent)
 if WORKSPACE not in sys.path:
     sys.path.insert(0, WORKSPACE)
 

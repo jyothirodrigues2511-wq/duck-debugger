@@ -6,12 +6,16 @@ import os
 import json
 import sqlite3
 
+from pathlib import Path
+
 # Ensure repo root is on sys.path
-sys.path.insert(0, r"C:\Users\Jyothi Rodrigues\.gemini\antigravity\scratch\duck-debugger")
+REPO_ROOT = Path(__file__).resolve().parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import db
 
-TEST_DB_PATH = r"C:\Users\Jyothi Rodrigues\.gemini\antigravity\scratch\duck-debugger\test_stress.db"
+TEST_DB_PATH = str(REPO_ROOT / "test_stress.db")
 
 def init_test_db():
     if os.path.exists(TEST_DB_PATH):

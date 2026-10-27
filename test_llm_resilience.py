@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Ensure target directory is in python path
-WORKSPACE_DIR = r"C:\Users\Jyothi Rodrigues\.gemini\antigravity\scratch\duck-debugger"
+from pathlib import Path
+WORKSPACE_DIR = str(Path(__file__).resolve().parent)
 if WORKSPACE_DIR not in sys.path:
     sys.path.insert(0, WORKSPACE_DIR)
 
