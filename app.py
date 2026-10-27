@@ -36,44 +36,52 @@ st.set_page_config(
 # Initialize database and seed sample bugs if first run
 db.init_db()
 
-# --- Custom Styling for Rubber Duck Theme ---
+# --- Custom Styling for Navy + Purple Stitch Theme ---
 st.markdown(
     """
     <style>
     .main-title {
         font-size: 2.3rem;
         font-weight: 800;
-        color: #E68A00;
+        color: #e0b6ff;
         margin-bottom: 0px;
+        letter-spacing: -0.5px;
     }
     .sub-title {
-        font-size: 1.1rem;
-        color: #555;
+        font-size: 1.05rem;
+        color: #d0c2d5;
         margin-bottom: 20px;
     }
     .duck-card {
-        background-color: #FFF8E7;
-        border-left: 5px solid #FFA500;
-        padding: 15px;
-        border-radius: 8px;
+        background-color: #171e37;
+        border-left: 4px solid #9d4edd;
+        border-top: 1px solid #2c344d;
+        border-right: 1px solid #2c344d;
+        border-bottom: 1px solid #2c344d;
+        padding: 16px;
+        border-radius: 12px;
         margin-bottom: 20px;
+        color: #dbe1ff;
     }
     .badge-pill {
         display: inline-block;
-        padding: 4px 10px;
-        border-radius: 12px;
+        padding: 4px 12px;
+        border-radius: 16px;
         font-size: 0.85rem;
         font-weight: 600;
-        background-color: #FFE082;
-        color: #4E342E;
-        margin-right: 5px;
+        background-color: #212942;
+        color: #e0b6ff;
+        border: 1px solid rgba(157, 78, 221, 0.4);
+        margin-right: 6px;
     }
     .solved-box {
-        background-color: #E8F5E9;
-        border: 2px solid #4CAF50;
-        padding: 16px;
-        border-radius: 10px;
+        background: linear-gradient(135deg, #171e37, #212942);
+        border: 2px solid #9d4edd;
+        box-shadow: 0 0 20px rgba(157, 78, 221, 0.25);
+        padding: 20px;
+        border-radius: 12px;
         margin-top: 15px;
+        color: #dbe1ff;
     }
     </style>
     """,

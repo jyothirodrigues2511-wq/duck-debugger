@@ -37,29 +37,33 @@ st.set_page_config(
 # Initialize DB in case navigated directly
 db.init_db()
 
-# --- Custom Styling ---
+# --- Custom Styling for Navy + Purple Stitch Theme ---
 st.markdown(
     """
     <style>
     .dash-title {
         font-size: 2.2rem;
         font-weight: 800;
-        color: #E68A00;
+        color: #e0b6ff;
         margin-bottom: 5px;
+        letter-spacing: -0.5px;
     }
     .weak-spot-card {
-        background: linear-gradient(135deg, #FFF3E0, #FFE0B2);
-        border: 2px solid #FF9800;
-        border-radius: 12px;
-        padding: 20px;
+        background: linear-gradient(135deg, #171e37, #212942);
+        border: 2px solid #9d4edd;
+        box-shadow: 0 0 24px rgba(157, 78, 221, 0.25);
+        border-radius: 14px;
+        padding: 22px;
         margin-bottom: 25px;
+        color: #dbe1ff;
     }
     .metric-badge {
-        background-color: #E65100;
-        color: white;
-        padding: 4px 10px;
-        border-radius: 8px;
+        background-color: #9d4edd;
+        color: #ffffff;
+        padding: 4px 12px;
+        border-radius: 12px;
         font-weight: bold;
+        font-size: 0.9rem;
     }
     </style>
     """,
@@ -168,7 +172,7 @@ with col_chart:
             list(stats["type_counts"].items()),
             columns=["Bug Type", "Count"]
         ).set_index("Bug Type")
-        st.bar_chart(df_chart, color="#FFA500")
+        st.bar_chart(df_chart, color="#9d4edd")
     else:
         st.info("No bug records found yet.")
 
