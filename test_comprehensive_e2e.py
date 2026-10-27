@@ -271,5 +271,21 @@ class TestScope1To10Exhaustive(unittest.TestCase):
             self.assertIn(pkg, content)
 
 
+    def test_requirements_pinned_and_st_secrets(self):
+        """Verifies requirements are pinned with == and st.secrets resolution works."""
+        req_path = os.path.join(WORKSPACE, "requirements.txt")
+        with open(req_path, "r", encoding="utf-8") as f:
+            lines = [l.strip() for l in f if l.strip() and not l.startswith("#")]
+        for line in lines:
+            self.assertIn("==", line, f"Requirement not pinned: {line}")
+
+        # Test st.secrets fallback in prompts.get_gemini_client
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            mock_st = MagicMock()
+            mock_st.secrets = {"GEMINI_API_KEY": "AIzaSyFakeKeyFromStreamlitSecrets12345"}
+            with patch.dict(sys.modules, {"streamlit": mock_st}):
+                client = prompts.get_gemini_client(None)
+                self.assertIsNotNone(client)
+
 if __name__ == "__main__":
     unittest.main()

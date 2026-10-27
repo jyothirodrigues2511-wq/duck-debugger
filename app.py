@@ -48,8 +48,16 @@ st.set_page_config(
 # Initialize database
 db.init_db()
 
-# Load Gemini API Key silently from .env
-gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+# Load Gemini API Key from Streamlit Secrets with .env as local fallback
+gemini_api_key = ""
+try:
+    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        gemini_api_key = str(st.secrets["GEMINI_API_KEY"]).strip()
+except Exception:
+    pass
+
+if not gemini_api_key:
+    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
 
 # --- Active Route Detection ---
 active_view = st.query_params.get("view", "studio")

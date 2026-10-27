@@ -129,7 +129,18 @@ def get_gemini_client(api_key: Optional[str] = None):
     Initializes and returns the Gemini client if a valid API key is available.
     Returns None immediately for placeholder, malformed, or empty keys.
     """
-    key = api_key if api_key is not None else os.environ.get("GEMINI_API_KEY", "")
+    if api_key is not None:
+        key = api_key
+    else:
+        key = ""
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+                key = str(st.secrets["GEMINI_API_KEY"]).strip()
+        except Exception:
+            pass
+        if not key:
+            key = os.environ.get("GEMINI_API_KEY", "")
     if not is_valid_gemini_api_key(key):
         return None
 
