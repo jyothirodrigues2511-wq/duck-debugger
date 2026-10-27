@@ -74,26 +74,42 @@ stats = db.get_bug_stats()
 all_bugs = db.get_all_bugs()
 
 # --- Top Weak Spot Banner ---
-top_spot = stats["top_weak_spot"]
-top_count = stats["top_weak_spot_count"]
+top_spot = stats.get("top_weak_spot") or "None yet"
+top_count = stats.get("top_weak_spot_count", 0)
 
 with st.container():
     col_banner, col_btn = st.columns([3, 1], vertical_alignment="center")
     with col_banner:
-        st.markdown(
-            f"""
-            <div class="weak-spot-card">
-                <h3 style="margin:0; color:#BF360C;">🎯 Weekly Focus & Top Weak Spot</h3>
-                <p style="font-size:1.15rem; margin: 8px 0 0 0; color:#37474F;">
-                    Your most frequent blind spot: <b>{top_spot}</b> (<span class="metric-badge">{top_count} times this week</span>)
-                </p>
-                <p style="font-size:0.9rem; color:#5D4037; margin:5px 0 0 0;">
-                    💡 Frequent patterns happen! Turn this blind spot into your superpower with targeted practice.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        if stats.get("total_bugs", 0) > 0 and top_spot != "None yet":
+            st.markdown(
+                f"""
+                <div class="weak-spot-card">
+                    <h3 style="margin:0; color:#BF360C;">🎯 Weekly Focus & Top Weak Spot</h3>
+                    <p style="font-size:1.15rem; margin: 8px 0 0 0; color:#37474F;">
+                        Your most frequent blind spot: <b>{top_spot}</b> (<span class="metric-badge">{top_count} times this week</span>)
+                    </p>
+                    <p style="font-size:0.9rem; color:#5D4037; margin:5px 0 0 0;">
+                        💡 Frequent patterns happen! Turn this blind spot into your superpower with targeted practice.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                """
+                <div class="weak-spot-card">
+                    <h3 style="margin:0; color:#BF360C;">🎯 Welcome to your Debugging Dashboard</h3>
+                    <p style="font-size:1.1rem; margin: 8px 0 0 0; color:#37474F;">
+                        No bugs recorded yet! Start debugging on the main page to populate your weekly analytics.
+                    </p>
+                    <p style="font-size:0.9rem; color:#5D4037; margin:5px 0 0 0;">
+                        💡 You can click the practice button on the right to test your debugging intuition right now!
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     with col_btn:
         st.markdown("**Drill this spot:**")
         practice_clicked = st.button("🧩 Generate Practice Problem", type="primary", use_container_width=True)
@@ -103,17 +119,19 @@ if "current_practice_problem" not in st.session_state:
     st.session_state.current_practice_problem = None
 
 if practice_clicked:
-    with st.spinner(f"Quack! Generating a custom Socratic puzzle for {top_spot}..."):
+    target_spot = top_spot if top_spot != "None yet" else "Off-by-one"
+    with st.spinner(f"Quack! Generating a custom Socratic puzzle for {target_spot}..."):
         api_key = os.getenv("GEMINI_API_KEY", "")
         problem = prompts.generate_practice_problem(
-            weak_spot=top_spot,
+            weak_spot=target_spot,
             language="Python",
             api_key=api_key
         )
         st.session_state.current_practice_problem = problem
 
 if st.session_state.current_practice_problem:
-    with st.expander("🧩 Practice Challenge: " + top_spot, expanded=True):
+    target_spot = top_spot if top_spot != "None yet" else "Off-by-one"
+    with st.expander("🧩 Practice Challenge: " + target_spot, expanded=True):
         st.markdown(st.session_state.current_practice_problem)
         st.info("💡 Duck Tip: Try tracing the boundary conditions in your head or on scratch paper before writing code!")
         if st.button("Close Practice Problem"):
@@ -128,7 +146,10 @@ col_stats, col_chart = st.columns([1, 2], gap="large")
 with col_stats:
     st.markdown("### 📈 Summary Metrics")
     st.metric("Total Bugs Solved", stats["total_bugs"])
-    st.metric("Top Weak Spot Count (This Week)", f"{top_count} issues", delta=f"{top_spot}", delta_color="inverse")
+    if top_spot != "None yet":
+        st.metric("Top Weak Spot Count (This Week)", f"{top_count} issues", delta=f"{top_spot}", delta_color="inverse")
+    else:
+        st.metric("Top Weak Spot Count (This Week)", "0 issues")
 
     # Scope distribution
     if all_bugs:

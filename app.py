@@ -103,7 +103,7 @@ with st.sidebar:
     # Session Stats
     stats = db.get_bug_stats()
     st.metric("Total Bugs Solved", stats["total_bugs"])
-    if stats["top_weak_spot"]:
+    if stats.get("top_weak_spot") and stats["top_weak_spot"] != "None yet":
         st.caption(f"Top focus: **{stats['top_weak_spot']}**")
 
     st.divider()
@@ -113,6 +113,7 @@ with st.sidebar:
         st.session_state.code_snippet = ""
         st.session_state.session_started = False
         st.session_state.solved = False
+        st.session_state.is_saving = False
         st.session_state.turn_count = 0
         st.session_state.solved_record = None
         st.rerun()
@@ -124,6 +125,8 @@ if "session_started" not in st.session_state:
     st.session_state.session_started = False
 if "solved" not in st.session_state:
     st.session_state.solved = False
+if "is_saving" not in st.session_state:
+    st.session_state.is_saving = False
 if "turn_count" not in st.session_state:
     st.session_state.turn_count = 0
 if "solved_record" not in st.session_state:
@@ -215,9 +218,9 @@ if st.session_state.session_started:
             unsafe_allow_html=True
         )
     with c_action:
-        if not st.session_state.solved:
+        if not st.session_state.solved and not st.session_state.is_saving:
             if st.button("🎉 I Solved It!", type="primary", use_container_width=True):
-                st.session_state.solved = True
+                st.session_state.is_saving = True
                 with st.spinner("Quack! Analyzing the solution and extracting insights for your dashboard..."):
                     extracted = prompts.extract_solved_json(
                         conversation=st.session_state.messages,
@@ -238,6 +241,8 @@ if st.session_state.session_started:
                     )
                     extracted["id"] = bug_id
                     st.session_state.solved_record = extracted
+                    st.session_state.solved = True
+                    st.session_state.is_saving = False
                     st.balloons()
                 st.rerun()
 
@@ -262,19 +267,20 @@ if st.session_state.session_started:
 
     # Display Chat History
     for message in st.session_state.messages:
-        if message["role"] == "user":
+        if message.get("role") == "user":
             with st.chat_message("user"):
-                st.write(message["content"])
+                st.write(message.get("content", ""))
         else:
             with st.chat_message("assistant", avatar="🦆"):
-                st.write(message["content"])
+                st.write(message.get("content", ""))
 
     # Chat Input (if not marked solved)
     if not st.session_state.solved:
         user_reply = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
-        if user_reply:
+        if user_reply and user_reply.strip():
+            clean_reply = user_reply.strip()
             # Append user message
-            st.session_state.messages.append({"role": "user", "content": user_reply})
+            st.session_state.messages.append({"role": "user", "content": clean_reply})
             st.session_state.turn_count += 1
 
             # Get Duck's Socratic answer
