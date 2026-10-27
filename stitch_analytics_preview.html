@@ -1,618 +1,777 @@
 <!DOCTYPE html>
-<html class="dark" lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <meta content="web_standard" name="shell-type"/>
-  <title>Duck Debugger Studio - Analytics & Weak Spots</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-  <style>
-    @layer base {
-      html, body { margin: 0; padding: 0; }
-      body { overscroll-behavior: none; }
-      main > :first-child { margin-top: 0 !important; }
-      main > :last-child { margin-bottom: 0 !important; }
-    }
-    ::-webkit-scrollbar { display: none; }
-  </style>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "on-primary-fixed-variant": "#6a0baa",
-            "on-error": "#690005",
-            "on-tertiary": "#4c007b",
-            "background": "#0a122a",
-            "on-secondary-container": "#d4a5ff",
-            "inverse-surface": "#dbe1ff",
-            "outline-variant": "#4d4353",
-            "primary-container": "#9d4edd",
-            "surface": "#0a122a",
-            "tertiary-container": "#9b53d2",
-            "surface-container-highest": "#2c344d",
-            "error": "#ffb4ab",
-            "surface-dim": "#0a122a",
-            "on-surface-variant": "#d0c2d5",
-            "primary-fixed-dim": "#e0b6ff",
-            "on-tertiary-fixed": "#2e004d",
-            "surface-container": "#171e37",
-            "on-tertiary-fixed-variant": "#691a9f",
-            "error-container": "#93000a",
-            "inverse-on-surface": "#282f49",
-            "surface-container-low": "#131a33",
-            "on-primary": "#4c007d",
-            "on-background": "#dbe1ff",
-            "primary": "#e0b6ff",
-            "inverse-primary": "#8433c4",
-            "on-secondary-fixed-variant": "#680eac",
-            "on-secondary-fixed": "#2d0050",
-            "surface-tint": "#e0b6ff",
-            "on-primary-fixed": "#2e004e",
-            "secondary-fixed": "#f1dbff",
-            "tertiary": "#e1b6ff",
-            "secondary-container": "#6b13af",
-            "outline": "#998d9e",
-            "tertiary-fixed": "#f2daff",
-            "on-surface": "#dbe1ff",
-            "on-secondary": "#4a007f",
-            "surface-container-high": "#212942",
-            "on-error-container": "#ffdad6",
-            "on-primary-container": "#fffdff",
-            "surface-bright": "#313852",
-            "secondary": "#deb7ff",
-            "tertiary-fixed-dim": "#e1b6ff",
-            "primary-fixed": "#f2daff",
-            "on-tertiary-container": "#fffdff",
-            "secondary-fixed-dim": "#deb7ff",
-            "surface-container-lowest": "#050d25",
-            "surface-variant": "#2c344d"
-          },
-          "borderRadius": {
-            "DEFAULT": "0.25rem",
-            "lg": "0.5rem",
-            "xl": "0.75rem",
-            "full": "9999px"
-          },
-          "spacing": {
-            "margin": "1rem",
-            "space-xl": "2.5rem",
-            "space-sm": "0.5rem",
-            "space-md": "1rem",
-            "margin-md": "2rem",
-            "gutter": "1rem",
-            "space-lg": "1.5rem",
-            "space-xs": "0.25rem",
-            "margin-lg": "3rem",
-            "gutter-lg": "2rem",
-            "gutter-md": "1.5rem"
-          },
-          "fontFamily": {
-            "code-lg": ["JetBrains Mono"],
-            "headline-xl": ["Inter"],
-            "headline-xl-mobile": ["Inter"],
-            "code-md": ["JetBrains Mono"],
-            "body-md": ["Inter"],
-            "headline-md": ["Inter"],
-            "headline-sm": ["Inter"],
-            "headline-lg-mobile": ["Inter"],
-            "headline-lg": ["Inter"],
-            "label-sm": ["JetBrains Mono"],
-            "body-lg": ["Inter"],
-            "label-md": ["JetBrains Mono"],
-            "body-sm": ["Inter"]
-          },
-          "fontSize": {
-            "code-lg": ["15px", { "lineHeight": "24px", "fontWeight": "500" }],
-            "headline-xl": ["40px", { "lineHeight": "48px", "fontWeight": "700" }],
-            "headline-xl-mobile": ["30px", { "lineHeight": "38px", "fontWeight": "700" }],
-            "code-md": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
-            "body-md": ["14px", { "lineHeight": "22px", "fontWeight": "400" }],
-            "headline-md": ["22px", { "lineHeight": "28px", "fontWeight": "600" }],
-            "headline-sm": ["18px", { "lineHeight": "24px", "fontWeight": "600" }],
-            "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
-            "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
-            "label-sm": ["11px", { "lineHeight": "14px", "fontWeight": "500" }],
-            "body-lg": ["16px", { "lineHeight": "26px", "fontWeight": "400" }],
-            "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
-            "body-sm": ["12px", { "lineHeight": "18px", "fontWeight": "400" }]
-          }
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-primary-fixed-variant": "#6a0baa",
+          "on-error": "#690005",
+          "on-tertiary": "#4c007b",
+          "background": "#0a122a",
+          "on-secondary-container": "#d4a5ff",
+          "inverse-surface": "#dbe1ff",
+          "outline-variant": "#4d4353",
+          "primary-container": "#9d4edd",
+          "surface": "#0a122a",
+          "tertiary-container": "#9b53d2",
+          "surface-container-highest": "#2c344d",
+          "error": "#ffb4ab",
+          "surface-dim": "#0a122a",
+          "on-surface-variant": "#d0c2d5",
+          "primary-fixed-dim": "#e0b6ff",
+          "on-tertiary-fixed": "#2e004d",
+          "surface-container": "#171e37",
+          "on-tertiary-fixed-variant": "#691a9f",
+          "error-container": "#93000a",
+          "inverse-on-surface": "#282f49",
+          "surface-container-low": "#131a33",
+          "on-primary": "#4c007d",
+          "on-background": "#dbe1ff",
+          "primary": "#e0b6ff",
+          "inverse-primary": "#8433c4",
+          "on-secondary-fixed-variant": "#680eac",
+          "on-secondary-fixed": "#2d0050",
+          "surface-tint": "#e0b6ff",
+          "on-primary-fixed": "#2e004e",
+          "secondary-fixed": "#f1dbff",
+          "tertiary": "#e1b6ff",
+          "secondary-container": "#6b13af",
+          "outline": "#998d9e",
+          "tertiary-fixed": "#f2daff",
+          "on-surface": "#dbe1ff",
+          "on-secondary": "#4a007f",
+          "surface-container-high": "#212942",
+          "on-error-container": "#ffdad6",
+          "on-primary-container": "#fffdff",
+          "surface-bright": "#313852",
+          "secondary": "deb7ff",
+          "tertiary-fixed-dim": "#e1b6ff",
+          "primary-fixed": "#f2daff",
+          "on-tertiary-container": "#fffdff",
+          "secondary-fixed-dim": "#deb7ff",
+          "surface-container-lowest": "#050d25",
+          "surface-variant": "#2c344d"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin": "1rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "margin-md": "2rem",
+          "gutter": "1rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "margin-lg": "3rem",
+          "gutter-lg": "2rem",
+          "gutter-md": "1.5rem"
+        },
+        "fontFamily": {
+          "code-lg": [
+            "JetBrains Mono"
+          ],
+          "headline-xl": [
+            "Inter"
+          ],
+          "headline-xl-mobile": [
+            "Inter"
+          ],
+          "code-md": [
+            "JetBrains Mono"
+          ],
+          "body-md": [
+            "Inter"
+          ],
+          "headline-md": [
+            "Inter"
+          ],
+          "headline-sm": [
+            "Inter"
+          ],
+          "headline-lg-mobile": [
+            "Inter"
+          ],
+          "headline-lg": [
+            "Inter"
+          ],
+          "label-sm": [
+            "JetBrains Mono"
+          ],
+          "body-lg": [
+            "Inter"
+          ],
+          "label-md": [
+            "JetBrains Mono"
+          ],
+          "body-sm": [
+            "Inter"
+          ]
+        },
+        "fontSize": {
+          "code-lg": [
+            "15px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "500"
+            }
+          ],
+          "headline-xl": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-xl-mobile": [
+            "30px",
+            {
+              "lineHeight": "38px",
+              "fontWeight": "700"
+            }
+          ],
+          "code-md": [
+            "13px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "22px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-sm": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "600"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "fontWeight": "500"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "26px",
+              "fontWeight": "400"
+            }
+          ],
+          "label-md": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "12px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "400"
+            }
+          ]
         }
-      }
-    };
-  </script>
-</head>
-<body class="bg-background font-body-md text-body-md text-on-surface antialiased">
-  <header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest">
-    <div class="h-16 w-full px-gutter-lg flex items-center justify-between gap-space-md">
-      <div class="flex items-center gap-space-md shrink-0">
-        <span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-bold">Duck Debugger</span>
-        <span class="font-label-sm text-label-sm uppercase px-space-sm py-space-xs rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span>
-      </div>
-      <nav class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-xs py-space-xs rounded-xl border border-surface-container-highest">
-        <a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="/">Socratic Studio</a>
-        <a class="px-space-md py-space-sm font-body-md transition-colors bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]" href="/Dashboard">Analytics & Weak Spots</a>
-        <a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#">Duck Wisdom Docs</a>
-        <a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" href="#">Terminal</a>
-      </nav>
-      <div class="flex items-center gap-space-md shrink-0">
-        <div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high border border-surface-container-highest">
-          <span class="material-symbols-outlined text-primary text-[16px]">bolt</span>
-          <span class="font-label-md text-label-md text-primary">14 Bug Streak</span>
-        </div>
-        <div class="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low border border-surface-container-highest">
-          <span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span>
-          <span class="font-code-md text-code-md text-on-surface-variant">Telemetry Active</span>
-        </div>
-        <div class="relative flex items-center justify-center">
-          <button aria-label="Notifications" class="p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button">
-            <span class="material-symbols-outlined text-[20px]">notifications</span>
-          </button>
-          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <main class="w-full pt-16 bg-surface min-h-[calc(100vh-4rem)]">
-    <div class="flex flex-col w-full">
-      <div class="w-full px-margin-lg py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto">
-        <!-- Top Meta Control / Header Bar -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
-          <div class="flex flex-col gap-space-xs">
-            <div class="flex items-center gap-space-sm">
-              <span class="p-space-xs rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[20px]">query_stats</span>
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest"><div class="h-16 w-full px-gutter-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Duck Debugger Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkejLzHkcuV4UxXNv9zVHIia-SYl2uq21ullUgEBqeR9fA1SUEWxZKCqUFXDPMdBmd4krj1OFG-Sggj10GU9-Lbmov-md2Gw_lqAVxKFUA09YmxB4ddTSXkTQ9hX5AJxtJvvTGivZs-Ch_8fxJ8EzTavRoZ46b-0KtpRbu0fAisbYB48n2rBv-ljzxuxh5cAjwKnu4fDww32eKC6jOCP8pAV_WC49Tv1NuaDR9TzczPh0e-y55Mz7_kg"/><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Duck Debugger </span><span class="font-label-sm text-label-sm uppercase px-space-sm py-space-xs rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span></div></div><nav class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-xs py-space-xs rounded-xl border border-surface-container-highest" data-active-classes="bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]"><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="socratic-studio" href="#">Socratic Studio</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="analytics-weak-spots" href="#">Analytics &amp; Weak Spots</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="duck-wisdom-docs" href="#">Duck Wisdom Docs</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="terminal" href="#">Terminal</a></nav><div class="flex items-center gap-space-md shrink-0"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high border border-surface-container-highest"><span class="font-label-md text-label-md text-primary"> 14 Bug Streak</span></div><div class="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low border border-surface-container-highest"><span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span><span class="font-code-md text-code-md text-on-surface-variant"> Ready</span></div><div class="relative flex items-center justify-center"><button aria-label="Notifications" class="p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span></button><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span></div><div class="flex items-center gap-space-sm pl-space-xs border-l border-surface-container-highest"><div class="relative"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIxMlMilh2RHc-sa0aZxRLVh5c0Gm5q3Xo72whV3cbDamFbL-72QCb7RfAzFBJowiUpsA7FHzgtYYgXwmOdjCfMkG5eI5ECh7hjg7HdfVgxPlpcTmwjeyIBQwfxevJa2vwy6peFROJ14cSoWBvUMbM-WN6wDozYOlwF02_BmDPElbqYCDSalJSsh2hagXjEQx3R2uZs5wCAmcZ4fcR2AdkkgbfD4acFA4O_iNuxi0TneWyAGuN36jSqQ"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-2 ring-surface"></span></div></div></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-4rem)]"><div class="flex flex-col w-full">
+<!-- Interactive & State Container -->
+<div class="w-full px-margin-lg py-space-xl flex flex-col gap-space-xl max-w-7xl mx-auto">
+<!-- Top Meta Control / Header Bar -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm">
+<span class="p-space-xs rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">query_stats</span>
+</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-primary">Intelligence Telemetry</span>
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            Sync: GitHub PR #142 (Linked)
+          </span>
+</div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
+          Debugging Intelligence &amp; Weak Spot Analytics
+        </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+          Systematic telemetry capturing your recurring logic anomalies, Socratic breakdown timeframes, and targeted algorithmic training vectors.
+        </p>
+</div>
+<!-- Quick Filter Bar -->
+<div class="flex flex-wrap items-center gap-space-sm bg-surface-container-low p-space-xs rounded-xl shadow-sm">
+<!-- Date Selector Pills -->
+<div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5">
+<button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md bg-primary-container text-on-primary-container transition-all" data-range="30d" type="button">Last 30 Days</button>
+<button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" data-range="quarter" type="button">This Quarter</button>
+<button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" data-range="all" type="button">All Time</button>
+</div>
+<!-- Language Dropdown Filter -->
+<div class="relative">
+<select class="appearance-none bg-surface-container-high text-on-surface font-label-md text-label-md pl-space-md pr-space-xl py-1.5 rounded-lg focus:outline-none focus:bg-surface-bright cursor-pointer" id="lang-filter">
+<option value="all">All Languages</option>
+<option value="ts">TypeScript</option>
+<option value="js">JavaScript</option>
+<option value="py">Python</option>
+<option value="rust">Rust / WASM</option>
+</select>
+<span class="material-symbols-outlined absolute right-2 top-2 pointer-events-none text-on-surface-variant text-[16px]">expand_more</span>
+</div>
+<!-- Action Export -->
+<button class="inline-flex items-center gap-1.5 px-space-md py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors shadow-sm" onclick="alert('Exporting analytics snapshot (JSON/CSV) with Socratic telemetry data...')" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">ios_share</span>
+<span>Export Report</span>
+</button>
+</div>
+</div>
+<!-- Weekly Weak Spot Hero Banner Card -->
+<div class="relative overflow-hidden rounded-xl bg-surface-container p-space-xl shadow-xl">
+<!-- Glow ambient background -->
+<div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary-container/25 blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-xl">
+<div class="flex flex-col gap-space-sm max-w-3xl">
+<div class="flex items-center gap-space-sm">
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">crisis_alert</span>
+              Critical Focus Vector
+            </span>
+<span class="font-label-sm text-label-sm text-primary font-mono tracking-wider">3 INCIDENTS IN PAST 7 DAYS</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
+            Weekly Focus: Infinite Loops &amp; Stalled Cursor Progression
+          </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">
+<strong class="text-primary font-semibold">67% of your debugging sessions</strong> this week stemmed from loop termination conditions, omitted index mutations, and blocked cursor progressions in asynchronous iterators.
+          </p>
+<div class="flex flex-wrap items-center gap-x-space-lg gap-y-space-xs mt-space-xs pt-space-xs font-code-md text-code-md text-on-surface-variant">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
+<span>Cognitive Trap: <span class="text-on-surface font-semibold">Block variable shadowing</span></span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-tertiary text-[18px]">timer</span>
+<span>Recovery Cost: <span class="text-on-surface font-semibold">18.4 min avg turnaround</span></span>
+</div>
+</div>
+</div>
+<!-- Hero CTAs & Companion Icon Widget -->
+<div class="flex flex-col sm:flex-row lg:flex-col items-stretch gap-space-sm shrink-0 min-w-[240px]">
+<button class="inline-flex items-center justify-center gap-space-sm px-space-lg py-3 rounded-lg bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all shadow-[0_0_24px_rgba(157,78,221,0.4)] font-label-md text-label-md font-semibold cursor-pointer" onclick="openPracticeModal()" type="button">
+<span class="material-symbols-outlined text-[20px]">extension</span>
+<span>Generate Practice Problem</span>
+</button>
+<button class="inline-flex items-center justify-center gap-space-sm px-space-lg py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors cursor-pointer" onclick="filterByWeakSpot('Infinite Loop')" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
+<span>Review Socratic Transcripts (3)</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Analytics Metrics & Data Visualization Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
+<!-- Left Column: 4 Metric Cards (Bento 5 cols) -->
+<div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-space-md">
+<!-- Metric 1: Total Bugs Solved -->
+<div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Bugs Solved</span>
+<span class="material-symbols-outlined text-primary text-[20px]">task_alt</span>
+</div>
+<div class="my-space-sm flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface">48</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">bugs</span>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-emerald-400">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+              +12% this month
+            </span>
+<!-- Purple micro-sparkline SVG -->
+<svg class="w-20 h-6 overflow-visible" fill="none" viewbox="0 0 80 24">
+<path d="M2 18 L18 16 L34 20 L50 9 L66 12 L78 3" stroke="#9d4edd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
+<circle cx="78" cy="3" fill="#e0b6ff" r="2.5"></circle>
+</svg>
+</div>
+</div>
+<!-- Metric 2: Avg Time to Aha! -->
+<div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Avg Time to "Aha!"</span>
+<span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
+</div>
+<div class="my-space-sm flex items-baseline gap-2">
+<span class="font-headline-xl text-headline-xl text-on-surface">4.2</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-mono">mins</span>
+</div>
+<div class="flex items-center justify-between pt-space-xs">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary">
+<span class="material-symbols-outlined text-[14px]">speed</span>
+              -35% with Socratic prompts
+            </span>
+</div>
+</div>
+<!-- Metric 3: Top Weak Spot Frequency -->
+<div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Weak Spot Recurrence</span>
+<span class="material-symbols-outlined text-error text-[20px]">report</span>
+</div>
+<div class="my-space-sm">
+<div class="font-headline-sm text-headline-sm text-on-surface truncate">Infinite Loops</div>
+<span class="font-label-sm text-label-sm text-primary font-mono">31% of total incidents</span>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
+<div class="bg-primary-container h-full rounded-full" style="width: 31%;"></div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2">
+            Runner-up: <span class="text-on-surface">State Mutation</span> (25%)
+          </p>
+</div>
+<!-- Metric 4: Scope Breakdown -->
+<div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Scope Distribution</span>
+<span class="material-symbols-outlined text-tertiary text-[20px]">pie_chart</span>
+</div>
+<div class="flex items-center gap-space-md my-space-xs">
+<!-- Inline Mini Donut SVG Chart -->
+<div class="relative w-14 h-14 shrink-0">
+<svg class="w-full h-full -rotate-90" viewbox="0 0 36 36">
+<!-- Background ring -->
+<circle cx="18" cy="18" fill="none" r="14" stroke="#2c344d" stroke-width="4.5"></circle>
+<!-- Logic Segment 45% (dasharray ~39.5 of 88) -->
+<circle cx="18" cy="18" fill="none" r="14" stroke="#9d4edd" stroke-dasharray="39.6 88" stroke-dashoffset="0" stroke-width="4.5"></circle>
+<!-- Runtime Segment 35% (dasharray ~30.8 of 88) -->
+<circle cx="18" cy="18" fill="none" r="14" stroke="#6b13af" stroke-dasharray="30.8 88" stroke-dashoffset="-39.6" stroke-width="4.5"></circle>
+<!-- State Segment 20% (dasharray ~17.6 of 88) -->
+<circle cx="18" cy="18" fill="none" r="14" stroke="#deb7ff" stroke-dasharray="17.6 88" stroke-dashoffset="-70.4" stroke-width="4.5"></circle>
+</svg>
+</div>
+<div class="flex flex-col gap-1 w-full font-label-sm text-label-sm">
+<div class="flex items-center justify-between">
+<span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Logic</span>
+<span class="font-mono text-on-surface">45%</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-secondary-container"></span>Runtime</span>
+<span class="font-mono text-on-surface">35%</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-secondary-fixed-dim"></span>State</span>
+<span class="font-mono text-on-surface">20%</span>
+</div>
+</div>
+</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Validated across 4 repository contexts</span>
+</div>
+</div>
+<!-- Right Column: Interactive Bug Type Frequency Bar Chart (Bento 7 cols) -->
+<div class="lg:col-span-7 p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface">Bug Pattern Frequency Matrix</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Resolved anomalies categorised by syntactic &amp; architectural archetype</span>
+</div>
+<span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface-variant font-code-md text-code-md">
+            Σ = 48 incidents
+          </span>
+</div>
+<!-- Custom Developer Bar Chart -->
+<div class="flex flex-col gap-space-md py-space-xs">
+<!-- Bar 1 -->
+<div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Infinite Loop')">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary">loop</span>
+                Infinite Loops
               </span>
-              <span class="font-label-sm text-label-sm uppercase tracking-wider text-primary">Intelligence Telemetry</span>
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-mono">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                Sync: Active Session
+<div class="flex items-center gap-2">
+<span class="font-mono text-primary font-bold">15 bugs</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">31.2%</span>
+</div>
+</div>
+<div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
+<div class="h-full rounded-md bg-gradient-to-r from-secondary-container via-primary-container to-primary transition-all duration-500 shadow-[0_0_12px_rgba(157,78,221,0.5)]" style="width: 100%;"></div>
+</div>
+</div>
+<!-- Bar 2 -->
+<div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Null Reference')">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-secondary">data_object</span>
+                Null / Undefined Reference
               </span>
-            </div>
-            <h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight">
-              Debugging Intelligence & Weak Spot Analytics
-            </h1>
-            <p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
-              Systematic telemetry capturing your recurring logic anomalies, Socratic breakdown timeframes, and targeted algorithmic training vectors.
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface">12 bugs</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">25.0%</span>
+</div>
+</div>
+<div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
+<div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest via-secondary-container to-secondary transition-all duration-500" style="width: 80%;"></div>
+</div>
+</div>
+<!-- Bar 3 -->
+<div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Off-by-one')">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary">difference</span>
+                Off-by-one Errors
+              </span>
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface">9 bugs</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">18.7%</span>
+</div>
+</div>
+<div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
+<div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest via-tertiary-container to-tertiary transition-all duration-500" style="width: 60%;"></div>
+</div>
+</div>
+<!-- Bar 4 -->
+<div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Type Coercion')">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-on-secondary-container">swap_horiz</span>
+                Type Coercion &amp; Falsey Evidentials
+              </span>
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface">7 bugs</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">14.5%</span>
+</div>
+</div>
+<div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
+<div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest to-secondary-container transition-all duration-500" style="width: 46%;"></div>
+</div>
+</div>
+<!-- Bar 5 -->
+<div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Race Condition')">
+<div class="flex items-center justify-between font-label-md text-label-md">
+<span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-primary-fixed-dim">sync_problem</span>
+                Race Conditions / Async Ordering
+              </span>
+<div class="flex items-center gap-2">
+<span class="font-mono text-on-surface">5 bugs</span>
+<span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">10.4%</span>
+</div>
+</div>
+<div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
+<div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest to-surface-bright transition-all duration-500" style="width: 33%;"></div>
+</div>
+</div>
+</div>
+<!-- Footer Metric Helper -->
+<div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
+<span>Click any pattern bar to isolate matching instances in the log stream below.</span>
+<button class="text-primary hover:underline font-code-md text-code-md" onclick="filterByWeakSpot('All')" type="button">Reset Filter</button>
+</div>
+</div>
+</div>
+<!-- Searchable Bug History Table & Inspector Section -->
+<div class="flex flex-col gap-space-md">
+<!-- Table Header & Filter Toolbar -->
+<div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-space-md">
+<!-- Search Input -->
+<div class="relative flex-1 max-w-lg">
+<span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[20px]">search</span>
+<input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:bg-surface-container shadow-sm transition-all" id="bug-search-input" oninput="handleSearch(this.value)" placeholder="Search by root cause, lesson, code snippet, or keyword..." type="text"/>
+</div>
+<!-- Type Filter Pills -->
+<div class="flex flex-wrap items-center gap-1.5 font-label-sm text-label-sm">
+<button class="type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container transition-all" onclick="filterByWeakSpot('All')" type="button">All Types</button>
+<button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Infinite Loop')" type="button">Infinite Loop</button>
+<button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Null Reference')" type="button">Null Ref</button>
+<button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Off-by-one')" type="button">Off-by-one</button>
+<button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Type Coercion')" type="button">Type Coercion</button>
+</div>
+</div>
+<!-- High Contrast Developer Data Table -->
+<div class="w-full overflow-x-auto rounded-xl bg-surface-container-lowest shadow-xl">
+<table class="w-full text-left border-collapse min-w-[1000px]" id="bug-table">
+<thead>
+<tr class="bg-surface-container font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
+<th class="py-3 px-4">Bug ID</th>
+<th class="py-3 px-4">Timestamp</th>
+<th class="py-3 px-4">Bug Type</th>
+<th class="py-3 px-4">Scope</th>
+<th class="py-3 px-4">Root Cause Summary</th>
+<th class="py-3 px-4">Key Socratic Lesson</th>
+<th class="py-3 px-4 text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y-0 font-body-md text-body-md">
+<!-- Row 1 -->
+<tr class="bug-row bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer" data-id="DBG-8942" data-type="Infinite Loop" onclick="openDrawer('DBG-8942')">
+<td class="py-3.5 px-4 font-mono font-semibold text-primary">#DBG-8942</td>
+<td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">Today, 14:20</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+                  Infinite Loop
+                </span>
+</td>
+<td class="py-3.5 px-4">
+<span class="font-code-md text-code-md text-on-surface-variant">Logic / Scope</span>
+</td>
+<td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
+                Variable shadowing in while loop block prevented counter update
+              </td>
+<td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
+                Declare loop cursors in outer scope without inner block <code class="text-primary font-mono">let</code> re-declarations.
+              </td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">
+                    Inspect Transcript 
+                  </button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface" title="View Code" type="button">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="bug-row bg-surface-container-lowest hover:bg-surface-container transition-colors group cursor-pointer" data-id="DBG-8931" data-type="Null Reference" onclick="openDrawer('DBG-8931')">
+<td class="py-3.5 px-4 font-mono font-semibold text-primary">#DBG-8931</td>
+<td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">Yesterday, 18:45</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">
+                  Null Reference
+                </span>
+</td>
+<td class="py-3.5 px-4">
+<span class="font-code-md text-code-md text-on-surface-variant">Runtime</span>
+</td>
+<td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
+                Unchecked optional chaining on nested user payload metadata
+              </td>
+<td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
+                Apply defensive null coalescing <code class="text-primary font-mono">?.</code> with schema fallback defaults.
+              </td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">
+                    Inspect Transcript 
+                  </button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface" title="View Code" type="button">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="bug-row bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer" data-id="DBG-8910" data-type="Off-by-one" onclick="openDrawer('DBG-8910')">
+<td class="py-3.5 px-4 font-mono font-semibold text-primary">#DBG-8910</td>
+<td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">3 days ago</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-tertiary font-label-sm text-label-sm">
+                  Off-by-one
+                </span>
+</td>
+<td class="py-3.5 px-4">
+<span class="font-code-md text-code-md text-on-surface-variant">State / Bounds</span>
+</td>
+<td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
+                Array partition index boundary used <code class="text-primary font-mono">&lt;=</code> instead of strict <code class="text-primary font-mono">&lt;</code>
+</td>
+<td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
+                Zero-indexed memory allocations always truncate at strictly <code class="text-primary font-mono">&lt; array.length</code>.
+              </td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">
+                    Inspect Transcript 
+                  </button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface" title="View Code" type="button">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="bug-row bg-surface-container-lowest hover:bg-surface-container transition-colors group cursor-pointer" data-id="DBG-8895" data-type="Type Coercion" onclick="openDrawer('DBG-8895')">
+<td class="py-3.5 px-4 font-mono font-semibold text-primary">#DBG-8895</td>
+<td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">Oct 18, 11:05</td>
+<td class="py-3.5 px-4">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+                  Type Coercion
+                </span>
+</td>
+<td class="py-3.5 px-4">
+<span class="font-code-md text-code-md text-on-surface-variant">Syntax</span>
+</td>
+<td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
+                Loose equality comparison (<code class="text-primary font-mono">==</code>) evaluated falsy string <code class="text-primary font-mono">"0"</code> as true
+              </td>
+<td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
+                Enforce strict equality <code class="text-primary font-mono">===</code> via AST linter rules across dynamic inputs.
+              </td>
+<td class="py-3.5 px-4 text-right whitespace-nowrap">
+<div class="inline-flex items-center gap-1">
+<button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">
+                    Inspect Transcript 
+                  </button>
+<button class="p-1 rounded text-on-surface-variant hover:text-on-surface" title="View Code" type="button">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Socratic Transcript & Code Inspector Drawer (Modal Overlay) -->
+<div class="fixed inset-0 z-50 hidden bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-space-md" id="inspector-modal">
+<div class="relative w-full max-w-4xl max-h-[921px] bg-surface-container rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+<!-- Drawer Header -->
+<div class="px-space-lg py-space-md bg-surface-container-high flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-sm"></span>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline-sm text-headline-sm text-on-surface" id="modal-title">Socratic Session: #DBG-8942</h3>
+<span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm" id="modal-badge">Infinite Loop</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant font-mono">Audio dictation parsed • 4 Socratic prompts exchanged</p>
+</div>
+</div>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-bright transition-colors" onclick="closeDrawer()" type="button">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+</div>
+<!-- Drawer Content Tabs / Body -->
+<div class="p-space-lg overflow-y-auto flex flex-col gap-space-lg font-body-md text-body-md text-on-surface">
+<!-- Socratic Reflection Summary Module -->
+<div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col gap-space-xs">
+<div class="flex items-center gap-2 text-primary font-headline-sm text-headline-sm">
+<span class="material-symbols-outlined text-[20px]">psychology_alt</span>
+<span>Duck Reflection Summary</span>
+</div>
+<p class="text-on-surface-variant" id="modal-reflection">
+              You noticed that the CPU locked up at 100% in local staging during asynchronous pagination. The Duck prompted: <em>"Where does the cursor variable actually mutate relative to the inner try-catch scope?"</em> You immediately spotted that an inner <code>let cursor = nextCursor</code> was redeclared in the block, leaving the while-condition checking a stale pointer forever.
             </p>
-          </div>
-          <!-- Quick Filter Bar -->
-          <div class="flex flex-wrap items-center gap-space-sm bg-surface-container-low p-space-xs rounded-xl shadow-sm">
-            <div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5">
-              <button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md bg-primary-container text-on-primary-container transition-all" data-range="30d" type="button">Last 30 Days</button>
-              <button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" data-range="quarter" type="button">This Quarter</button>
-              <button class="date-pill px-space-sm py-1 rounded font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-all" data-range="all" type="button">All Time</button>
-            </div>
-            <div class="relative">
-              <select class="appearance-none bg-surface-container-high text-on-surface font-label-md text-label-md pl-space-md pr-space-xl py-1.5 rounded-lg focus:outline-none focus:bg-surface-bright cursor-pointer" id="lang-filter">
-                <option value="all">All Languages</option>
-                <option value="py">Python</option>
-                <option value="js">JavaScript</option>
-                <option value="ts">TypeScript</option>
-                <option value="cpp">C++</option>
-              </select>
-              <span class="material-symbols-outlined absolute right-2 top-2 pointer-events-none text-on-surface-variant text-[16px]">expand_more</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Weekly Weak Spot Hero Banner Card -->
-        <div class="relative overflow-hidden rounded-xl bg-surface-container p-space-xl shadow-xl">
-          <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
-          <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary-container/25 blur-3xl pointer-events-none"></div>
-          <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-space-xl">
-            <div class="flex flex-col gap-space-sm max-w-3xl">
-              <div class="flex items-center gap-space-sm">
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm">
-                  <span class="material-symbols-outlined text-[14px]">crisis_alert</span>
-                  Critical Focus Vector
-                </span>
-                <span class="font-label-sm text-label-sm text-primary font-mono tracking-wider">4 INCIDENTS IN PAST 7 DAYS</span>
-              </div>
-              <h2 class="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
-                Weekly Focus: Off-by-one Errors
-              </h2>
-              <p class="font-body-lg text-body-lg text-on-surface-variant">
-                <strong class="text-primary font-semibold">67% of your debugging sessions</strong> this week stemmed from boundary conditions, slice indices, and fencepost off-by-one errors.
-              </p>
-              <div class="flex flex-wrap items-center gap-x-space-lg gap-y-space-xs mt-space-xs pt-space-xs font-code-md text-code-md text-on-surface-variant">
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
-                  <span>Cognitive Trap: <span class="text-on-surface font-semibold">Inclusive vs Exclusive bounds</span></span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-tertiary text-[18px]">timer</span>
-                  <span>Recovery Cost: <span class="text-on-surface font-semibold">4.2 min avg turnaround</span></span>
-                </div>
-              </div>
-            </div>
-            <div class="flex flex-col sm:flex-row lg:flex-col items-stretch gap-space-sm shrink-0 min-w-[240px]">
-              <button class="inline-flex items-center justify-center gap-space-sm px-space-lg py-3 rounded-lg bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all shadow-[0_0_24px_rgba(157,78,221,0.4)] font-label-md text-label-md font-semibold cursor-pointer" onclick="openPracticeModal()" type="button">
-                <span class="material-symbols-outlined text-[20px]">extension</span>
-                <span>Generate Practice Problem</span>
-              </button>
-              <button class="inline-flex items-center justify-center gap-space-sm px-space-lg py-2.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors cursor-pointer" onclick="filterByWeakSpot('Off-by-one')" type="button">
-                <span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
-                <span>Review Socratic Transcripts (4)</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Analytics Metrics & Data Visualization Bento Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg">
-          <!-- Left Column: 4 Metric Cards -->
-          <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-space-md">
-            <!-- Metric 1: Total Bugs Solved -->
-            <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
-              <div class="flex items-center justify-between">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Bugs Solved</span>
-                <span class="material-symbols-outlined text-primary text-[20px]">task_alt</span>
-              </div>
-              <div class="my-space-sm flex items-baseline gap-2">
-                <span class="font-headline-xl text-headline-xl text-on-surface">6</span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">bugs</span>
-              </div>
-              <div class="flex items-center justify-between pt-space-xs">
-                <span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-emerald-400">
-                  <span class="material-symbols-outlined text-[14px]">trending_up</span>
-                  +100% telemetry synced
-                </span>
-                <svg class="w-20 h-6 overflow-visible" fill="none" viewBox="0 0 80 24">
-                  <path d="M2 18 L18 16 L34 20 L50 9 L66 12 L78 3" stroke="#9d4edd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
-                  <circle cx="78" cy="3" fill="#e0b6ff" r="2.5"></circle>
-                </svg>
-              </div>
-            </div>
-
-            <!-- Metric 2: Avg Time to Aha! -->
-            <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
-              <div class="flex items-center justify-between">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Avg Time to Aha!</span>
-                <span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
-              </div>
-              <div class="my-space-sm flex items-baseline gap-2">
-                <span class="font-headline-xl text-headline-xl text-on-surface">4.2</span>
-                <span class="font-label-sm text-label-sm text-on-surface-variant font-mono">mins</span>
-              </div>
-              <div class="flex items-center justify-between pt-space-xs">
-                <span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary">
-                  <span class="material-symbols-outlined text-[14px]">speed</span>
-                  -35% with Socratic prompts
-                </span>
-              </div>
-            </div>
-
-            <!-- Metric 3: Top Weak Spot Frequency -->
-            <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
-              <div class="flex items-center justify-between">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Weak Spot Recurrence</span>
-                <span class="material-symbols-outlined text-error text-[20px]">report</span>
-              </div>
-              <div class="my-space-sm">
-                <div class="font-headline-sm text-headline-sm text-on-surface truncate">Off-by-one</div>
-                <span class="font-label-sm text-label-sm text-primary font-mono">67% of total incidents</span>
-              </div>
-              <div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
-                <div class="bg-primary-container h-full rounded-full" style="width: 67%;"></div>
-              </div>
-              <p class="font-body-sm text-body-sm text-on-surface-variant mt-2">
-                Runner-up: <span class="text-on-surface">Logic / Indexing</span> (33%)
-              </p>
-            </div>
-
-            <!-- Metric 4: Scope Breakdown -->
-            <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
-              <div class="flex items-center justify-between">
-                <span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Scope Distribution</span>
-                <span class="material-symbols-outlined text-tertiary text-[20px]">pie_chart</span>
-              </div>
-              <div class="flex items-center gap-space-md my-space-xs">
-                <div class="relative w-14 h-14 shrink-0">
-                  <svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <circle cx="18" cy="18" fill="none" r="14" stroke="#2c344d" stroke-width="4.5"></circle>
-                    <circle cx="18" cy="18" fill="none" r="14" stroke="#9d4edd" stroke-dasharray="58.7 88" stroke-dashoffset="0" stroke-width="4.5"></circle>
-                    <circle cx="18" cy="18" fill="none" r="14" stroke="#6b13af" stroke-dasharray="29.3 88" stroke-dashoffset="-58.7" stroke-width="4.5"></circle>
-                  </svg>
-                </div>
-                <div class="flex flex-col gap-1 w-full font-label-sm text-label-sm">
-                  <div class="flex items-center justify-between">
-                    <span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Logic</span>
-                    <span class="font-mono text-on-surface">67%</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="flex items-center gap-1 text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-secondary-container"></span>Bounds</span>
-                    <span class="font-mono text-on-surface">33%</span>
-                  </div>
-                </div>
-              </div>
-              <span class="font-body-sm text-body-sm text-on-surface-variant">Validated in local workspace</span>
-            </div>
-          </div>
-
-          <!-- Right Column: Bug Pattern Frequency Matrix -->
-          <div class="lg:col-span-7 p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between shadow-sm">
-            <div class="flex items-center justify-between mb-space-md">
-              <div class="flex flex-col">
-                <span class="font-headline-sm text-headline-sm text-on-surface">Bug Pattern Frequency Matrix</span>
-                <span class="font-body-sm text-body-sm text-on-surface-variant">Resolved anomalies categorised by syntactic & architectural archetype</span>
-              </div>
-              <span class="px-space-sm py-0.5 rounded-full bg-surface-container text-on-surface-variant font-code-md text-code-md">
-                6 incidents recorded
-              </span>
-            </div>
-
-            <!-- Custom Developer Bar Chart -->
-            <div class="flex flex-col gap-space-md py-space-xs">
-              <div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Off-by-one')">
-                <div class="flex items-center justify-between font-label-md text-label-md">
-                  <span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-primary">difference</span>
-                    Off-by-one Errors
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono text-primary font-bold">4 bugs</span>
-                    <span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">66.7%</span>
-                  </div>
-                </div>
-                <div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
-                  <div class="h-full rounded-md bg-gradient-to-r from-secondary-container via-primary-container to-primary transition-all duration-500 shadow-[0_0_12px_rgba(157,78,221,0.5)]" style="width: 100%;"></div>
-                </div>
-              </div>
-
-              <div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Infinite Loop')">
-                <div class="flex items-center justify-between font-label-md text-label-md">
-                  <span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-secondary">loop</span>
-                    Infinite Loops
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono text-on-surface">1 bug</span>
-                    <span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">16.7%</span>
-                  </div>
-                </div>
-                <div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
-                  <div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest via-secondary-container to-secondary transition-all duration-500" style="width: 25%;"></div>
-                </div>
-              </div>
-
-              <div class="group flex flex-col gap-1 cursor-pointer" onclick="filterByWeakSpot('Null Reference')">
-                <div class="flex items-center justify-between font-label-md text-label-md">
-                  <span class="text-on-surface font-medium group-hover:text-primary transition-colors flex items-center gap-1.5">
-                    <span class="material-symbols-outlined text-[16px] text-tertiary">data_object</span>
-                    Null / Undefined Reference
-                  </span>
-                  <div class="flex items-center gap-2">
-                    <span class="font-mono text-on-surface">1 bug</span>
-                    <span class="px-1.5 py-0.2 rounded bg-surface-container text-on-surface-variant font-mono text-[10px]">16.7%</span>
-                  </div>
-                </div>
-                <div class="w-full h-5 rounded-lg bg-surface-container-lowest p-0.5">
-                  <div class="h-full rounded-md bg-gradient-to-r from-surface-container-highest via-tertiary-container to-tertiary transition-all duration-500" style="width: 25%;"></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
-              <span>Click any pattern bar to isolate matching instances in the log stream below.</span>
-              <button class="text-primary hover:underline font-code-md text-code-md" onclick="filterByWeakSpot('All')" type="button">Reset Filter</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Searchable Bug History Table & Inspector Section -->
-        <div class="flex flex-col gap-space-md">
-          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-space-md">
-            <div class="relative flex-1 max-w-lg">
-              <span class="material-symbols-outlined absolute left-3 top-2.5 text-on-surface-variant text-[20px]">search</span>
-              <input class="w-full bg-surface-container-low text-on-surface font-body-md text-body-md pl-10 pr-4 py-2 rounded-xl focus:outline-none focus:bg-surface-container shadow-sm transition-all" id="bug-search-input" oninput="handleSearch(this.value)" placeholder="Search by root cause, lesson, code snippet, or keyword..." type="text"/>
-            </div>
-            <div class="flex flex-wrap items-center gap-1.5 font-label-sm text-label-sm">
-              <button class="type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container transition-all" onclick="filterByWeakSpot('All')" type="button">All Types</button>
-              <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Off-by-one')" type="button">Off-by-one</button>
-              <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Infinite Loop')" type="button">Infinite Loop</button>
-              <button class="type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all" onclick="filterByWeakSpot('Null Reference')" type="button">Null Reference</button>
-            </div>
-          </div>
-
-          <!-- Developer Data Table -->
-          <div class="w-full overflow-x-auto rounded-xl bg-surface-container-lowest shadow-xl">
-            <table class="w-full text-left border-collapse min-w-[1000px]" id="bug-table">
-              <thead>
-                <tr class="bg-surface-container font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">
-                  <th class="py-3 px-4">Bug ID</th>
-                  <th class="py-3 px-4">Timestamp</th>
-                  <th class="py-3 px-4">Bug Type</th>
-                  <th class="py-3 px-4">Scope</th>
-                  <th class="py-3 px-4">Root Cause Summary</th>
-                  <th class="py-3 px-4">Key Socratic Lesson</th>
-                  <th class="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y-0 font-body-md text-body-md">
-                <tr class="bug-row bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer" data-id="1" data-type="Off-by-one" onclick="openDrawer(1, 'Off-by-one', 'Loop condition evaluated <= len(items)', 'Zero-indexed loops truncate strictly at < len(items).')">
-                  <td class="py-3.5 px-4 font-mono font-semibold text-primary">#1</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">2026-10-25 10:15</td>
-                  <td class="py-3.5 px-4">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Off-by-one</span>
-                  </td>
-                  <td class="py-3.5 px-4"><span class="font-code-md text-code-md text-on-surface-variant">Logic / Indexing</span></td>
-                  <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">Loop condition evaluated &lt;= len(items) instead of &lt; len(items)</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">Zero-indexed loops truncate strictly at &lt; len(items).</td>
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">Inspect Session</button>
-                  </td>
-                </tr>
-
-                <tr class="bug-row bg-surface-container-lowest hover:bg-surface-container transition-colors group cursor-pointer" data-id="2" data-type="Off-by-one" onclick="openDrawer(2, 'Off-by-one', 'Slice range omitted the final element due to non-inclusive end index', 'Remember range(start, end) stops before end.')">
-                  <td class="py-3.5 px-4 font-mono font-semibold text-primary">#2</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">2026-10-25 14:30</td>
-                  <td class="py-3.5 px-4">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Off-by-one</span>
-                  </td>
-                  <td class="py-3.5 px-4"><span class="font-code-md text-code-md text-on-surface-variant">Logic / Slicing</span></td>
-                  <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">Slice range omitted the final element due to non-inclusive end index</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">Remember range(start, end) stops before end.</td>
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">Inspect Session</button>
-                  </td>
-                </tr>
-
-                <tr class="bug-row bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer" data-id="3" data-type="Off-by-one" onclick="openDrawer(3, 'Off-by-one', 'Off by one on page pagination ceiling calculation', 'Use math.ceil for page computation.')">
-                  <td class="py-3.5 px-4 font-mono font-semibold text-primary">#3</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">2026-10-26 09:20</td>
-                  <td class="py-3.5 px-4">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Off-by-one</span>
-                  </td>
-                  <td class="py-3.5 px-4"><span class="font-code-md text-code-md text-on-surface-variant">Logic / Math</span></td>
-                  <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">Off by one on page pagination ceiling calculation</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">Use math.ceil for page computation.</td>
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">Inspect Session</button>
-                  </td>
-                </tr>
-
-                <tr class="bug-row bg-surface-container-lowest hover:bg-surface-container transition-colors group cursor-pointer" data-id="4" data-type="Off-by-one" onclick="openDrawer(4, 'Off-by-one', 'Binary search upper bound mid calculation caused infinite loop', 'High pointer should be mid - 1 in strict binary search.')">
-                  <td class="py-3.5 px-4 font-mono font-semibold text-primary">#4</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">2026-10-26 16:45</td>
-                  <td class="py-3.5 px-4">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">Off-by-one</span>
-                  </td>
-                  <td class="py-3.5 px-4"><span class="font-code-md text-code-md text-on-surface-variant">Logic / Search</span></td>
-                  <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">Binary search upper bound mid calculation caused infinite loop</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">High pointer should be mid - 1 in strict binary search.</td>
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">Inspect Session</button>
-                  </td>
-                </tr>
-
-                <tr class="bug-row bg-surface-container-low hover:bg-surface-container transition-colors group cursor-pointer" data-id="5" data-type="Null Reference" onclick="openDrawer(5, 'Null Reference', 'Unchecked None when parsing JSON response payload', 'Always validate presence of key before indexing dict.')">
-                  <td class="py-3.5 px-4 font-mono font-semibold text-primary">#5</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">2026-10-24 11:10</td>
-                  <td class="py-3.5 px-4">
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm">Null Reference</span>
-                  </td>
-                  <td class="py-3.5 px-4"><span class="font-code-md text-code-md text-on-surface-variant">Runtime</span></td>
-                  <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">Unchecked None when parsing JSON response payload</td>
-                  <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">Always validate presence of key before indexing dict.</td>
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-colors" type="button">Inspect Session</button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Inspector Drawer Modal -->
-        <div class="fixed inset-0 z-50 hidden bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-space-md" id="inspector-modal">
-          <div class="relative w-full max-w-4xl max-h-[921px] bg-surface-container rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <div class="px-space-lg py-space-md bg-surface-container-high flex items-center justify-between">
-              <div class="flex items-center gap-space-sm">
-                <span class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container font-bold text-sm">
-                  <span class="material-symbols-outlined text-[18px]">psychology</span>
-                </span>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h3 class="font-headline-sm text-headline-sm text-on-surface" id="modal-title">Socratic Session: #1</h3>
-                    <span class="px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm" id="modal-badge">Off-by-one</span>
-                  </div>
-                  <p class="font-label-sm text-label-sm text-on-surface-variant font-mono">Telemetry verified • Socratic prompts exchanged</p>
-                </div>
-              </div>
-              <button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-bright transition-colors" onclick="closeDrawer()" type="button">
-                <span class="material-symbols-outlined text-[24px]">close</span>
-              </button>
-            </div>
-
-            <div class="p-space-lg overflow-y-auto flex flex-col gap-space-lg font-body-md text-body-md text-on-surface">
-              <div class="p-space-md rounded-xl bg-surface-container-low shadow-sm flex flex-col gap-space-xs">
-                <div class="flex items-center gap-2 text-primary font-headline-sm text-headline-sm">
-                  <span class="material-symbols-outlined text-[20px]">psychology_alt</span>
-                  <span>Duck Reflection Summary</span>
-                </div>
-                <p class="text-on-surface-variant" id="modal-reflection">
-                  Loop condition evaluated &lt;= len(items) instead of &lt; len(items). Zero-indexed loops truncate strictly at &lt; len(items).
-                </p>
-              </div>
-
-              <div class="flex flex-col gap-space-xs">
-                <div class="flex items-center justify-between">
-                  <span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-mono">Socratic Resolution</span>
-                </div>
-                <div class="rounded-xl bg-surface-container-lowest p-space-md font-mono text-code-md overflow-x-auto shadow-inner">
-                  <div class="text-on-surface-variant opacity-60">// Before Socratic Intervention</div>
-                  <div class="text-error bg-error-container/20 px-2 py-0.5 rounded">for i in range(0, len(items) + 1):  # Index out of bounds</div>
-                  <div class="mt-3 text-on-surface-variant opacity-60">// Applied Solution</div>
-                  <div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded">for i in range(0, len(items)):      # Strictly bounded</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="px-space-lg py-space-md bg-surface-container-high flex items-center justify-between">
-              <span class="font-code-md text-code-md text-on-surface-variant">Time to clarity: <strong class="text-on-surface">3m 12s</strong></span>
-              <button class="px-space-md py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors" onclick="closeDrawer()" type="button">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Practice Problem Modal -->
-        <div class="fixed inset-0 z-50 hidden bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-space-md" id="practice-modal">
-          <div class="relative w-full max-w-2xl bg-surface-container rounded-2xl shadow-2xl p-space-xl flex flex-col gap-space-lg">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[28px]">extension</span>
-                <h3 class="font-headline-md text-headline-md text-on-surface">Synthesized Practice Vector</h3>
-              </div>
-              <button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface" onclick="closePracticeModal()" type="button">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-            <div class="flex flex-col gap-space-sm">
-              <p class="font-body-md text-body-md text-on-surface-variant">
-                Based on your frequent <strong class="text-primary font-semibold">Off-by-one Errors</strong> sessions this week, drill this custom challenge in the Socratic Studio:
-              </p>
-              <div class="p-space-md rounded-xl bg-surface-container-lowest font-mono text-code-md">
-                <div class="text-primary font-bold mb-1">// Challenge #BOUNDS-01: Circular Array Window Indexing</div>
-                <div class="text-on-surface-variant">Implement a sliding window average over a fixed-length circular buffer where index wrap-around does not drop the boundary element or read out of bounds.</div>
-              </div>
-            </div>
-            <div class="flex items-center justify-end gap-space-sm">
-              <button class="px-space-md py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md" onclick="closePracticeModal()" type="button">
-                Later
-              </button>
-              <a href="/" class="px-space-lg py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md hover:bg-secondary-container transition-colors shadow-md">
-                Launch Socratic Studio
-              </a>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </main>
-
-  <footer class="w-full bg-surface-container-lowest border-t border-surface-container-highest py-space-lg">
-    <div class="w-full px-gutter-lg flex flex-col md:flex-row items-center justify-between gap-space-md">
-      <div class="flex items-center gap-space-sm font-code-md text-code-md text-on-surface-variant">
-        <span class="material-symbols-outlined text-primary text-[18px]">psychology</span>
-        <span>Socratic Synthesis Engine • Zero Hallucination Mode Active</span>
-      </div>
-      <div class="flex items-center gap-space-md font-label-sm text-label-sm text-on-surface-variant">
-        <span class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Kernel 6.1-duck-rt</span>
-        <span>Telemetry: Nominal</span>
-        <span>© Duck Debugger Studio</span>
-      </div>
-    </div>
-  </footer>
-
-  <script>
+</div>
+<!-- Code Diff / Buggy Snippet Inspector -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-mono">Original Snippet vs. Socratic Fix</span>
+<span class="font-code-md text-code-md text-primary font-mono">pagination_stream.ts:42</span>
+</div>
+<div class="rounded-xl bg-surface-container-lowest p-space-md font-mono text-code-md overflow-x-auto shadow-inner">
+<div class="text-on-surface-variant opacity-60">// // Before Socratic Intervention Before Socratic Intervention</div>
+<div class="text-error bg-error-container/20 px-2 py-0.5 rounded">while (hasMore &amp;&amp; cursor !== null) {</div>
+<div class="text-error bg-error-container/20 px-2 py-0.5 rounded ml-4">let cursor = await fetchNextBatch(cursor); // Shadowed!</div>
+<div class="text-error bg-error-container/20 px-2 py-0.5 rounded ml-4">process(cursor.items);</div>
+<div class="text-error bg-error-container/20 px-2 py-0.5 rounded">}</div>
+<div class="mt-3 text-on-surface-variant opacity-60">// // Applied Duck Solution Applied Duck Solution</div>
+<div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded">while (hasMore &amp;&amp; cursor !== null) {</div>
+<div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded ml-4">const batch = await fetchNextBatch(cursor);</div>
+<div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded ml-4">cursor = batch.nextPointer; // Mutates outer scope</div>
+<div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded ml-4">process(batch.items);</div>
+<div class="text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded">}</div>
+</div>
+</div>
+<!-- Voice Dictation Stream -->
+<div class="flex flex-col gap-space-sm">
+<span class="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-mono">Live Session Transcript Excerpt</span>
+<div class="space-y-3 font-body-sm text-body-sm">
+<div class="p-space-sm rounded-lg bg-surface-container-high flex gap-3">
+<span class="text-on-surface font-semibold font-mono shrink-0">Engineer:</span>
+<span class="text-on-surface-variant">"Hey duck, I have this stream queue that hangs indefinitely whenever the page size is greater than 50. What gives?"</span>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-low flex gap-3">
+<span class="text-primary font-semibold font-mono shrink-0">Duck :</span>
+<span class="text-on-surface-variant">"Walk me line-by-line through what alters your loop sentinel between entry and evaluation. What does line 43 assign to?"</span>
+</div>
+<div class="p-space-sm rounded-lg bg-surface-container-high flex gap-3">
+<span class="text-on-surface font-semibold font-mono shrink-0">Engineer:</span>
+<span class="text-on-surface-variant">"Wait... oh no. I wrote 'let cursor =' inside the block. The outer loop cursor condition never sees the new pointer!"</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Drawer Footer -->
+<div class="px-space-lg py-space-md bg-surface-container-high flex items-center justify-between">
+<span class="font-code-md text-code-md text-on-surface-variant">Time to clarity: <strong class="text-on-surface">3m 12s</strong></span>
+<div class="flex items-center gap-space-sm">
+<button class="px-space-md py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-colors" onclick="closeDrawer()" type="button">
+              Close
+            </button>
+<button class="px-space-md py-1.5 rounded-lg bg-primary-container text-on-primary-container hover:bg-secondary-container font-label-md text-label-md transition-colors shadow-sm" onclick="alert('Exported lesson to your Obsidian / Markdown notes repository!')" type="button">
+              Export to Personal Obsidian
+            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Practice Generator Modal -->
+<div class="fixed inset-0 z-50 hidden bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-space-md" id="practice-modal">
+<div class="relative w-full max-w-2xl bg-surface-container rounded-2xl shadow-2xl p-space-xl flex flex-col gap-space-lg">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[28px]">extension</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Synthesized Practice Vector</h3>
+</div>
+<button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface" onclick="closePracticeModal()" type="button">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="flex flex-col gap-space-sm">
+<p class="font-body-md text-body-md text-on-surface-variant">
+            Based on your frequent <strong class="text-primary font-semibold">Infinite Loop &amp; Cursor Shadowing</strong> sessions, the Duck AI has generated an interactive sandbox challenge tailored to break this exact cognitive pattern:
+          </p>
+<div class="p-space-md rounded-xl bg-surface-container-lowest font-mono text-code-md">
+<div class="text-primary font-bold mb-1">// Challenge #LOOP-04: Asynchronous Paginated Stream Reducer</div>
+<div class="text-on-surface-variant">Implement a backpressured cursor drain where inner promise retries do not swallow termination flags or create phantom shadow references.</div>
+</div>
+</div>
+<div class="flex items-center justify-end gap-space-sm">
+<button class="px-space-md py-2 rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md" onclick="closePracticeModal()" type="button">
+            Later
+          </button>
+<button class="px-space-lg py-2 rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md hover:bg-secondary-container transition-colors shadow-md" onclick="alert('Opening interactive Socratic coding workspace...'); closePracticeModal();" type="button">
+            Launch Socratic Sandbox 
+          </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Client-side Interactive Scripts -->
+<script>
     function filterByWeakSpot(type) {
       const rows = document.querySelectorAll('.bug-row');
       const pills = document.querySelectorAll('.type-pill');
@@ -649,16 +808,13 @@
       });
     }
 
-    function openDrawer(id, type, rootCause, lesson) {
+    function openDrawer(bugId) {
       const modal = document.getElementById('inspector-modal');
       const title = document.getElementById('modal-title');
       const badge = document.getElementById('modal-badge');
-      const reflection = document.getElementById('modal-reflection');
       if (modal) {
         modal.classList.remove('hidden');
-        if (title) title.innerText = `Socratic Session: #${id}`;
-        if (badge) badge.innerText = type;
-        if (reflection) reflection.innerHTML = `<strong>Root Cause:</strong> ${rootCause}<br/><br/><strong>Key Lesson:</strong> ${lesson}`;
+        if (title) title.innerText = `Socratic Session: #${bugId}`;
       }
     }
 
@@ -677,6 +833,7 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    // Toggle active date filters
     document.querySelectorAll('.date-pill').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.date-pill').forEach(b => {
@@ -686,5 +843,4 @@
       });
     });
   </script>
-</body>
-</html>
+</div></main><footer class="w-full bg-surface-container-lowest border-t border-surface-container-highest py-space-lg"><div class="w-full px-gutter-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm font-code-md text-code-md text-on-surface-variant"><span class="material-symbols-outlined text-primary text-[18px]">psychology</span><span>Socratic Synthesis Engine • Zero Hallucination Mode Active</span></div><div class="flex items-center gap-space-md font-label-sm text-label-sm text-on-surface-variant"><span class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Kernel 6.1-duck-rt</span><span>Telemetry: Nominal</span><span>© Duck Debugger Studio</span></div></div></footer></body></html>
