@@ -287,5 +287,29 @@ class TestScope1To10Exhaustive(unittest.TestCase):
                 client = prompts.get_gemini_client(None)
                 self.assertIsNotNone(client)
 
+    def test_deploy_readiness_automatic_schema_and_seed(self):
+        """Verifies that in a clean cloud environment without duck_debugger.db, schema is auto-created and seeded."""
+        import tempfile
+        test_db = os.path.join(tempfile.gettempdir(), f"test_cloud_{int(time.time()*1000)}.db")
+        old_path = db.DB_PATH
+        old_init = db._DB_INITIALIZED
+        try:
+            db.DB_PATH = test_db
+            db._DB_INITIALIZED = False
+            self.assertFalse(os.path.exists(test_db))
+            bugs = db.get_all_bugs()
+            self.assertTrue(os.path.exists(test_db))
+            self.assertEqual(len(bugs), 6)
+            stats = db.get_bug_stats()
+            self.assertEqual(stats["total_bugs"], 6)
+        finally:
+            db.DB_PATH = old_path
+            db._DB_INITIALIZED = old_init
+            if os.path.exists(test_db):
+                try:
+                    os.remove(test_db)
+                except Exception:
+                    pass
+
 if __name__ == "__main__":
     unittest.main()

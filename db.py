@@ -13,8 +13,39 @@ from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "duck_debugger.db")
+def _resolve_writable_db_path() -> str:
+    """
+    Resolves a writable database path for local and cloud environments.
+    Supports DUCK_DEBUGGER_DB_PATH override, then default repo directory,
+    falling back to user home or temp directory if repository directory is read-only.
+    """
+    custom = os.environ.get("DUCK_DEBUGGER_DB_PATH")
+    if custom:
+        target_dir = os.path.dirname(os.path.abspath(custom))
+        if target_dir:
+            os.makedirs(target_dir, exist_ok=True)
+        return os.path.abspath(custom)
+
+    default_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        os.makedirs(default_dir, exist_ok=True)
+        test_file = os.path.join(default_dir, ".write_test")
+        with open(test_file, "a") as f:
+            pass
+        os.remove(test_file)
+        return os.path.join(default_dir, "duck_debugger.db")
+    except (OSError, PermissionError):
+        pass
+
+    import tempfile
+    fallback_dir = os.path.join(tempfile.gettempdir(), "duck_debugger")
+    os.makedirs(fallback_dir, exist_ok=True)
+    return os.path.join(fallback_dir, "duck_debugger.db")
+
+
+DB_PATH = _resolve_writable_db_path()
 _INIT_LOCK = threading.Lock()
+_DB_INITIALIZED = False
 
 
 class ManagedConnection(sqlite3.Connection):
@@ -31,11 +62,8 @@ class ManagedConnection(sqlite3.Connection):
             self.close()
 
 
-def get_connection(timeout: float = 15.0) -> sqlite3.Connection:
-    """
-    Creates a database connection with dict-like row factory and auto-closing context manager.
-    Configures busy timeout to prevent 'database is locked' errors under concurrent load.
-    """
+def _create_raw_connection(timeout: float = 15.0) -> sqlite3.Connection:
+    """Creates a raw SQLite connection ensuring parent directory exists."""
     db_dir = os.path.dirname(os.path.abspath(DB_PATH))
     if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir, exist_ok=True)
@@ -51,9 +79,25 @@ def get_connection(timeout: float = 15.0) -> sqlite3.Connection:
     return conn
 
 
+def get_connection(timeout: float = 15.0) -> sqlite3.Connection:
+    """
+    Creates a database connection with dict-like row factory and auto-closing context manager.
+    Configures busy timeout to prevent 'database is locked' errors under concurrent load.
+    Ensures schema is initialized and seeded on first access.
+    """
+    global _DB_INITIALIZED
+    if not _DB_INITIALIZED or not os.path.exists(DB_PATH):
+        init_db(seed_samples=True)
+
+    return _create_raw_connection(timeout=timeout)
+
+
 def _configure_database_pragmas() -> None:
     """Enables Write-Ahead Logging (WAL) and normal synchronous mode for concurrency."""
     try:
+        db_dir = os.path.dirname(os.path.abspath(DB_PATH))
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
         conn = sqlite3.connect(DB_PATH, timeout=15.0)
         try:
             conn.isolation_level = None  # Autocommit mode required for journal_mode pragma
@@ -94,7 +138,7 @@ def _quarantine_corrupted_db() -> None:
 def reset_demo_data() -> None:
     """Resets the bugs table to the clean demo baseline with 6 realistic bugs."""
     with _INIT_LOCK:
-        with get_connection() as conn:
+        with _create_raw_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM bugs;")
             cursor.execute("DELETE FROM sqlite_sequence WHERE name='bugs';")
@@ -103,10 +147,11 @@ def reset_demo_data() -> None:
 
 
 def _init_db_core(seed_samples: bool = True) -> None:
+    global _DB_INITIALIZED
     # Set WAL mode outside transaction first
     _configure_database_pragmas()
 
-    with get_connection() as conn:
+    with _create_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
@@ -133,6 +178,8 @@ def _init_db_core(seed_samples: bool = True) -> None:
             row = cursor.fetchone()
             if row and row["count"] == 0:
                 seed_initial_data(conn)
+
+    _DB_INITIALIZED = True
 
 
 def seed_initial_data(conn: sqlite3.Connection) -> None:
