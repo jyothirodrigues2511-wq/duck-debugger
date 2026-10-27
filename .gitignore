@@ -1,0 +1,23 @@
+# Secrets & Environment variables
+.env
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# SQLite Database (optional - keep local)
+*.db
+*.sqlite3
+
+# OS metadata
+.DS_Store
+Thumbs.db
