@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base { html, body { margin: 0; padding: 0; } body { overscroll-behavior: none; } main > :first-child { margin-top: 0 !important; } main > :last-child { margin-bottom: 0 !important; } } ::-webkit-scrollbar { display: none; }</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+          "on-primary-fixed-variant": "#6a0baa",
+          "on-error": "#690005",
+          "on-tertiary": "#4c007b",
+          "background": "#0a122a",
+          "on-secondary-container": "#d4a5ff",
+          "inverse-surface": "#dbe1ff",
+          "outline-variant": "#4d4353",
+          "primary-container": "#9d4edd",
+          "surface": "#0a122a",
+          "tertiary-container": "#9b53d2",
+          "surface-container-highest": "#2c344d",
+          "error": "#ffb4ab",
+          "surface-dim": "#0a122a",
+          "on-surface-variant": "#d0c2d5",
+          "primary-fixed-dim": "#e0b6ff",
+          "on-tertiary-fixed": "#2e004d",
+          "surface-container": "#171e37",
+          "on-tertiary-fixed-variant": "#691a9f",
+          "error-container": "#93000a",
+          "inverse-on-surface": "#282f49",
+          "surface-container-low": "#131a33",
+          "on-primary": "#4c007d",
+          "on-background": "#dbe1ff",
+          "primary": "#e0b6ff",
+          "inverse-primary": "#8433c4",
+          "on-secondary-fixed-variant": "#680eac",
+          "on-secondary-fixed": "#2d0050",
+          "surface-tint": "#e0b6ff",
+          "on-primary-fixed": "#2e004e",
+          "secondary-fixed": "#f1dbff",
+          "tertiary": "#e1b6ff",
+          "secondary-container": "#6b13af",
+          "outline": "#998d9e",
+          "tertiary-fixed": "#f2daff",
+          "on-surface": "#dbe1ff",
+          "on-secondary": "#4a007f",
+          "surface-container-high": "#212942",
+          "on-error-container": "#ffdad6",
+          "on-primary-container": "#fffdff",
+          "surface-bright": "#313852",
+          "secondary": "deb7ff",
+          "tertiary-fixed-dim": "#e1b6ff",
+          "primary-fixed": "#f2daff",
+          "on-tertiary-container": "#fffdff",
+          "secondary-fixed-dim": "#deb7ff",
+          "surface-container-lowest": "#050d25",
+          "surface-variant": "#2c344d"
+        },
+        "borderRadius": {
+          "DEFAULT": "0.25rem",
+          "lg": "0.5rem",
+          "xl": "0.75rem",
+          "full": "9999px"
+        },
+        "spacing": {
+          "margin": "1rem",
+          "space-xl": "2.5rem",
+          "space-sm": "0.5rem",
+          "space-md": "1rem",
+          "margin-md": "2rem",
+          "gutter": "1rem",
+          "space-lg": "1.5rem",
+          "space-xs": "0.25rem",
+          "margin-lg": "3rem",
+          "gutter-lg": "2rem",
+          "gutter-md": "1.5rem"
+        },
+        "fontFamily": {
+          "code-lg": [
+            "JetBrains Mono"
+          ],
+          "headline-xl": [
+            "Inter"
+          ],
+          "headline-xl-mobile": [
+            "Inter"
+          ],
+          "code-md": [
+            "JetBrains Mono"
+          ],
+          "body-md": [
+            "Inter"
+          ],
+          "headline-md": [
+            "Inter"
+          ],
+          "headline-sm": [
+            "Inter"
+          ],
+          "headline-lg-mobile": [
+            "Inter"
+          ],
+          "headline-lg": [
+            "Inter"
+          ],
+          "label-sm": [
+            "JetBrains Mono"
+          ],
+          "body-lg": [
+            "Inter"
+          ],
+          "label-md": [
+            "JetBrains Mono"
+          ],
+          "body-sm": [
+            "Inter"
+          ]
+        },
+        "fontSize": {
+          "code-lg": [
+            "15px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "500"
+            }
+          ],
+          "headline-xl": [
+            "40px",
+            {
+              "lineHeight": "48px",
+              "fontWeight": "700"
+            }
+          ],
+          "headline-xl-mobile": [
+            "30px",
+            {
+              "lineHeight": "38px",
+              "fontWeight": "700"
+            }
+          ],
+          "code-md": [
+            "13px",
+            {
+              "lineHeight": "20px",
+              "fontWeight": "400"
+            }
+          ],
+          "body-md": [
+            "14px",
+            {
+              "lineHeight": "22px",
+              "fontWeight": "400"
+            }
+          ],
+          "headline-md": [
+            "22px",
+            {
+              "lineHeight": "28px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-sm": [
+            "18px",
+            {
+              "lineHeight": "24px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg-mobile": [
+            "24px",
+            {
+              "lineHeight": "32px",
+              "fontWeight": "600"
+            }
+          ],
+          "headline-lg": [
+            "32px",
+            {
+              "lineHeight": "40px",
+              "fontWeight": "600"
+            }
+          ],
+          "label-sm": [
+            "11px",
+            {
+              "lineHeight": "14px",
+              "fontWeight": "500"
+            }
+          ],
+          "body-lg": [
+            "16px",
+            {
+              "lineHeight": "26px",
+              "fontWeight": "400"
+            }
+          ],
+          "label-md": [
+            "12px",
+            {
+              "lineHeight": "16px",
+              "fontWeight": "600"
+            }
+          ],
+          "body-sm": [
+            "12px",
+            {
+              "lineHeight": "18px",
+              "fontWeight": "400"
+            }
+          ]
+        }
+      },
+    },
+  }</script></head><body class="bg-background font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 left-0 right-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-surface-container-highest"><div class="h-16 w-full px-gutter-lg flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-md shrink-0"><img alt="Duck Debugger Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCkejLzHkcuV4UxXNv9zVHIia-SYl2uq21ullUgEBqeR9fA1SUEWxZKCqUFXDPMdBmd4krj1OFG-Sggj10GU9-Lbmov-md2Gw_lqAVxKFUA09YmxB4ddTSXkTQ9hX5AJxtJvvTGivZs-Ch_8fxJ8EzTavRoZ46b-0KtpRbu0fAisbYB48n2rBv-ljzxuxh5cAjwKnu4fDww32eKC6jOCP8pAV_WC49Tv1NuaDR9TzczPh0e-y55Mz7_kg"/><div class="flex items-center gap-space-sm"><span class="font-headline-sm text-headline-sm text-on-surface tracking-tight">Duck Debugger </span><span class="font-label-sm text-label-sm uppercase px-space-sm py-space-xs rounded-full bg-secondary-container text-on-secondary-container border border-primary-container/40">v2.4 Pro</span></div></div><nav class="hidden xl:flex items-center gap-space-xs bg-surface-container-low px-space-xs py-space-xs rounded-xl border border-surface-container-highest" data-active-classes="bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]"><a aria-current="page" class="px-space-md py-space-sm font-body-md transition-colors bg-primary-container text-on-primary-container rounded-lg shadow-[0_0_16px_rgba(157,78,221,0.35)]" data-path="socratic-studio" href="#">Socratic Studio</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="analytics-weak-spots" href="#">Analytics &amp; Weak Spots</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="duck-wisdom-docs" href="#">Duck Wisdom Docs</a><a class="px-space-md py-space-sm rounded-lg font-body-md text-body-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" data-path="terminal" href="#">Terminal</a></nav><div class="flex items-center gap-space-md shrink-0"><div class="hidden md:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high border border-surface-container-highest"><span class="font-label-md text-label-md text-primary"> 14 Bug Streak</span></div><div class="hidden lg:flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-low border border-surface-container-highest"><span class="inline-block w-2 h-2 rounded-full bg-primary-container animate-pulse"></span><span class="font-code-md text-code-md text-on-surface-variant"> Ready</span></div><div class="relative flex items-center justify-center"><button aria-label="Notifications" class="p-space-xs rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span></button><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary ring-2 ring-surface"></span></div><div class="flex items-center gap-space-sm pl-space-xs border-l border-surface-container-highest"><div class="relative"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIxMlMilh2RHc-sa0aZxRLVh5c0Gm5q3Xo72whV3cbDamFbL-72QCb7RfAzFBJowiUpsA7FHzgtYYgXwmOdjCfMkG5eI5ECh7hjg7HdfVgxPlpcTmwjeyIBQwfxevJa2vwy6peFROJ14cSoWBvUMbM-WN6wDozYOlwF02_BmDPElbqYCDSalJSsh2hagXjEQx3R2uZs5wCAmcZ4fcR2AdkkgbfD4acFA4O_iNuxi0TneWyAGuN36jSqQ"/><span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-primary-container ring-2 ring-surface"></span></div></div></div></div></header><main class="w-full pt-16 bg-surface min-h-[calc(100vh-4rem)]"><div class="flex flex-col w-full">
+<!-- Interactive Socratic Debugging Studio Master Canvas -->
+<div class="w-full px-gutter md:px-gutter-md xl:px-gutter-lg py-space-md flex flex-col gap-space-lg">
+<!-- SUBHEADER / SESSION STATUS BAR -->
+<div class="w-full bg-surface-container-low/90 backdrop-blur-md rounded-xl p-space-md shadow-xl flex flex-col xl:flex-row xl:items-center justify-between gap-space-md">
+<!-- Left: Status Badges -->
+<div class="flex flex-wrap items-center gap-space-xs md:gap-space-sm">
+<span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm shadow-[0_0_12px_rgba(157,78,221,0.35)]">
+<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+<span> Socratic Mode: Active</span>
+</span>
+<span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-primary">sync_alt</span>
+<span>Turn Counter: 3 / 6</span>
+</span>
+<span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-amber-400"></span>
+<span class="text-on-surface">JavaScript (Node 20)</span>
+</span>
+<span class="inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-lowest text-on-surface-variant font-code-md text-code-md">
+<span class="material-symbols-outlined text-[14px] text-primary">bug_report</span>
+<span class="text-on-surface font-medium">#DBG-8942</span>
+<span class="hidden sm:inline text-outline-variant">· Infinite Loop Detection</span>
+</span>
+</div>
+<!-- Right: Main Controls -->
+<div class="flex flex-wrap items-center gap-space-xs sm:gap-space-sm">
+<button class="group relative px-space-md py-space-sm rounded-lg bg-gradient-to-r from-secondary-container via-primary-container to-primary-container text-on-primary-container font-headline-sm text-headline-sm hover:opacity-95 shadow-[0_0_24px_rgba(157,78,221,0.45)] transition-all duration-200 flex items-center gap-space-xs" id="toggle-celebration-btn" type="button">
+<span class="group-hover:rotate-12 transition-transform"></span>
+<span>I Solved It!</span>
+</button>
+<div class="flex items-center bg-surface-container-high rounded-lg p-0.5">
+<button class="p-space-xs rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors flex items-center" title="Reset Duck Context" type="button">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+</button>
+<button class="p-space-xs rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors flex items-center" title="Copy Socratic Transcript" type="button">
+<span class="material-symbols-outlined text-[18px]">content_copy</span>
+</button>
+<button class="p-space-xs rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors flex items-center" id="mute-btn" title="Mute Audio" type="button">
+<span class="material-symbols-outlined text-[18px]">volume_up</span>
+</button>
+</div>
+</div>
+</div>
+<!-- UPPER INPUT SECTION (Two-Column Responsive Split) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- LEFT COLUMN: Bug Description & Voice Dictation -->
+<div class="lg:col-span-5 flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-1.5">
+<span></span>
+<span>Bug Description</span>
+</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm">Spoken Feed</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">64 words • 10:42:15 AM</span>
+</div>
+<div class="bg-surface-container-low rounded-xl p-space-md shadow-lg flex flex-col justify-between min-h-[340px] relative overflow-hidden group">
+<!-- Ambient violet glow on upper edge -->
+<div class="absolute -top-12 -right-12 w-32 h-32 rounded-full bg-primary-container/10 blur-2xl pointer-events-none"></div>
+<div class="flex flex-col gap-space-md relative z-10">
+<!-- Realistic Spoken Transcript Card -->
+<p class="font-body-lg text-body-lg text-on-surface leading-relaxed select-text font-normal">
+              "I was trying to build a paginated cursor fetch for our activity logs, but whenever the API returns <code class="bg-surface-container-high px-1 py-0.5 rounded text-primary font-code-md text-code-md">hasNextPage=true</code>, the while-loop never advances the cursor and the browser tab locks up with 100% CPU spike... It's like the cursor variable inside the loop body is shadowed or never reassigned."
+            </p>
+</div>
+<!-- Bottom Voice Status & Interactive Waveform -->
+<div class="pt-space-md mt-space-md bg-surface-container-lowest/60 -mx-space-md -mb-space-md p-space-md flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm">
+<button aria-label="Toggle Dictation" class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_12px_rgba(157,78,221,0.5)] hover:scale-105 active:scale-95 transition-transform" id="dictation-btn" type="button">
+<span class="material-symbols-outlined text-[18px]">mic</span>
+</button>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-primary font-semibold">Voice Dictation Active</span>
+<span class="font-label-sm text-label-sm text-outline">Click microphone to pause stream</span>
+</div>
+</div>
+<!-- Waveform SVG Visualization -->
+<div aria-hidden="true" class="flex items-center gap-1 h-6 px-space-xs">
+<span class="w-1 bg-primary/80 rounded-full h-2 animate-pulse"></span>
+<span class="w-1 bg-primary rounded-full h-5 animate-pulse" style="animation-delay: 150ms"></span>
+<span class="w-1 bg-primary-container rounded-full h-3 animate-pulse" style="animation-delay: 75ms"></span>
+<span class="w-1 bg-primary rounded-full h-6 animate-pulse" style="animation-delay: 200ms"></span>
+<span class="w-1 bg-primary-container rounded-full h-4 animate-pulse" style="animation-delay: 120ms"></span>
+<span class="w-1 bg-primary/70 rounded-full h-2 animate-pulse" style="animation-delay: 250ms"></span>
+</div>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN: Code Snippet Monospace Inspector -->
+<div class="lg:col-span-7 flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-1.5">
+<span></span>
+<span>Code Snippet</span>
+</span>
+<span class="px-space-xs py-0.5 rounded bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm">read-only buffer</span>
+</div>
+<!-- Quick Controls -->
+<div class="flex items-center gap-space-xs">
+<label class="sr-only" for="language-select">Programming Language</label>
+<select class="bg-surface-container-high text-on-surface font-label-sm text-label-sm rounded-lg px-space-sm py-1 focus:outline-none focus:ring-1 focus:ring-primary" id="language-select">
+<option selected="" value="js">JavaScript</option>
+<option value="ts">TypeScript</option>
+<option value="py">Python</option>
+<option value="rs">Rust</option>
+<option value="go">Go</option>
+</select>
+<button class="px-space-sm py-1 bg-surface-container-high hover:bg-surface-container text-on-surface font-label-sm text-label-sm rounded-lg transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[14px]">content_copy</span>
+<span>Copy</span>
+</button>
+<button class="px-space-sm py-1 bg-surface-container-high hover:bg-surface-container text-on-surface font-label-sm text-label-sm rounded-lg transition-colors flex items-center gap-1" type="button">
+<span class="material-symbols-outlined text-[14px]">auto_fix_high</span>
+<span>Format</span>
+</button>
+</div>
+</div>
+<!-- Syntax-highlighted code editor box -->
+<div class="bg-[#0d152d] rounded-xl overflow-hidden shadow-2xl flex flex-col font-code-md text-code-md">
+<!-- Top Editor Bar -->
+<div class="px-space-md py-space-xs bg-surface-container-lowest flex items-center justify-between">
+<div class="flex items-center gap-space-xs">
+<span class="w-3 h-3 rounded-full bg-[#ff5f56]/80"></span>
+<span class="w-3 h-3 rounded-full bg-[#ffbd2e]/80"></span>
+<span class="w-3 h-3 rounded-full bg-[#27c93f]/80"></span>
+<span class="font-code-md text-code-md text-outline ml-2">activityLogger.js</span>
+</div>
+<div class="flex items-center gap-space-sm font-label-sm text-label-sm text-outline">
+<span>UTF-8</span>
+<span>LF</span>
+<span class="text-primary font-medium">Ln 9, Col 13</span>
+</div>
+</div>
+<!-- Code Area with Line Numbers -->
+<div class="p-space-md overflow-x-auto leading-relaxed select-text">
+<table class="w-full text-left font-code-md text-code-md border-collapse">
+<tbody>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none w-8">1</td>
+<td class="text-on-surface"><span class="text-primary">async function</span> <span class="text-amber-300">fetchAllActivity</span>(<span class="text-sky-300">initialCursor</span>) {</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">2</td>
+<td class="text-on-surface">  <span class="text-primary">let</span> <span class="text-sky-300">cursor</span> = <span class="text-sky-300">initialCursor</span>;</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">3</td>
+<td class="text-on-surface">  <span class="text-primary">const</span> <span class="text-sky-300">results</span> = [];</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">4</td>
+<td class="text-on-surface">  <span class="text-primary">while</span> (<span class="text-sky-300">cursor</span>) {</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">5</td>
+<td class="text-on-surface">    <span class="text-primary">const</span> <span class="text-sky-300">response</span> = <span class="text-primary">await</span> api.<span class="text-amber-300">getActivities</span>({ <span class="text-sky-300">cursor</span> });</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">6</td>
+<td class="text-on-surface">    <span class="text-sky-300">results</span>.<span class="text-amber-300">push</span>(...<span class="text-sky-300">response</span>.<span class="text-on-surface">items</span>);</td>
+</tr>
+<tr class="bg-error-container/20 hover:bg-error-container/30">
+<td class="pr-4 text-right text-error select-none">7</td>
+<td class="text-on-error-container italic">    <span class="text-error font-semibold">// BUG: const cursor shadows outer variable!</span></td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">8</td>
+<td class="text-on-surface">    <span class="text-primary">if</span> (<span class="text-sky-300">response</span>.<span class="text-on-surface">pageInfo</span>.<span class="text-sky-300">hasNextPage</span>) {</td>
+</tr>
+<tr class="bg-primary-container/20 hover:bg-primary-container/30">
+<td class="pr-4 text-right text-primary select-none font-bold">9</td>
+<td class="text-on-surface font-semibold">      <span class="text-error font-bold">const</span> <span class="text-primary font-bold underline decoration-primary decoration-wavy">cursor</span> = <span class="text-sky-300">response</span>.<span class="text-on-surface">pageInfo</span>.<span class="text-sky-300">endCursor</span>;</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">10</td>
+<td class="text-on-surface">    } <span class="text-primary">else</span> {</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">11</td>
+<td class="text-on-surface">      <span class="text-primary">break</span>;</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">12</td>
+<td class="text-on-surface">    }</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">13</td>
+<td class="text-on-surface">  }</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">14</td>
+<td class="text-on-surface">  <span class="text-primary">return</span> <span class="text-sky-300">results</span>;</td>
+</tr>
+<tr class="hover:bg-surface-container-high/30">
+<td class="pr-4 text-right text-outline-variant select-none">15</td>
+<td class="text-on-surface">}</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- START QUACKING PROMPT ACTION -->
+<div class="w-full">
+<button class="w-full py-space-md px-space-lg rounded-xl bg-surface-container-high hover:bg-surface-container hover:shadow-[0_0_24px_rgba(157,78,221,0.3)] active:scale-[0.99] text-primary hover:text-on-surface transition-all flex items-center justify-center gap-space-sm group" type="button">
+<span class="text-2xl group-hover:scale-125 transition-transform"></span>
+<span class="font-headline-sm text-headline-sm font-semibold tracking-wide">Start Quacking with the Duck</span>
+<span class="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</button>
+</div>
+<!-- BACK-AND-FORTH CHAT FEED -->
+<div class="w-full flex flex-col gap-space-lg pt-space-md">
+<!-- Socratic Duck Message 1 -->
+<div class="flex items-start gap-space-md max-w-4xl">
+<div class="w-12 h-12 rounded-xl shrink-0 bg-surface-container-high flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(157,78,221,0.25)]">
+<img class="w-full h-full object-cover" data-alt="A stylized geometric low-poly 3D rubber duck mascot glowing in electric purple and dark violet neon outlines on a deep midnight void, wearing high-tech developer headphones, analytical debugging aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCZdqKekhQtz0z5H1BuXS1mpjSsqWAc9UTOtUy_1J_koxkq0OCYNtL-uoz9KlD_txSzOVgiLpV_6Ls3RJ2tt-v8vd7tjpa4uSvSF6zuHTZedMoF7aACtPTVlum8kCt7SWULp7dwghfT7bXtcQLZ0CV8uaNreL7MM03BaFfcN3n4qGEObfbVULTR_j3Z717TZor-GSb4VOBZDFvTFej0sECnXvotCP58mQ6-s11Y5XuZwAIfWLZDK4QQGQ"/>
+</div>
+<div class="flex flex-col gap-1 flex-1">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-primary">Socratic Duck</span>
+<span class="font-label-sm text-label-sm text-outline">2m ago</span>
+<span class="px-space-xs py-0.5 rounded bg-primary-container/20 text-primary font-label-sm text-label-sm">Hypothesis Check</span>
+</div>
+<div class="bg-surface-container-high rounded-xl p-space-md text-on-surface shadow-md">
+<p class="font-body-lg text-body-lg leading-relaxed">
+              Quack! What value does your <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary font-code-md text-code-md">cursor</code> variable hold right after line 9 executes? Walk me through what the <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary font-code-md text-code-md">while (cursor)</code> condition evaluates on the very next cycle.
+            </p>
+</div>
+</div>
+</div>
+<!-- User Message 1 -->
+<div class="flex items-start gap-space-md max-w-3xl self-end flex-row-reverse">
+<div class="w-12 h-12 rounded-xl shrink-0 bg-secondary-container text-on-secondary-container flex items-center justify-center font-bold text-headline-sm shadow-md">
+<span>JD</span>
+</div>
+<div class="flex flex-col gap-1 items-end flex-1">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm text-outline">1m ago</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">You (Engineer)</span>
+</div>
+<div class="bg-on-surface text-surface rounded-xl p-space-md shadow-xl">
+<p class="font-body-lg text-body-lg leading-relaxed font-medium">
+              Wait... on line 9 I declared <code class="bg-surface-variant/20 px-1.5 py-0.5 rounded font-code-md text-code-md font-semibold">const cursor = response.pageInfo.endCursor;</code> inside the <code class="bg-surface-variant/20 px-1 py-0.5 rounded font-code-md text-code-md">if</code> block, which means the outer <code class="bg-surface-variant/20 px-1 py-0.5 rounded font-code-md text-code-md">cursor</code> declared with <code class="bg-surface-variant/20 px-1 py-0.5 rounded font-code-md text-code-md">let cursor</code> on line 2 is never reassigned!
+            </p>
+</div>
+</div>
+</div>
+<!-- Socratic Duck Message 2 -->
+<div class="flex items-start gap-space-md max-w-4xl">
+<div class="w-12 h-12 rounded-xl shrink-0 bg-surface-container-high flex items-center justify-center overflow-hidden shadow-[0_0_16px_rgba(157,78,221,0.25)]">
+<img class="w-full h-full object-cover" data-alt="A futuristic digital purple rubber duck glowing in neon violet with cybernetic headset wireframe nodes in deep midnight blue background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBplkMcjr0IYonVKIX_oo_DpWAJgPAdDSxGn-QkD_i2pml4dSI57tZWLRviCF29PVC9OZlNUd7qop7OoV5KYvPWpGsE8j2dY2X1XeDwA7bwUvsEDxmmziywsKX3SwGOgWMJLtIxL0DiWAq2vMGw8UgqyXkKwuX5gTIpzOKr1WQACP82T290iXwc2sCO5Qy5QaoQd2gZzhJC0IWU9PZdYcvyR2Ubpyn0TgbSXg89Cq1gSWVQ-Lm2AaDVyA"/>
+</div>
+<div class="flex flex-col gap-1 flex-1">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-sm text-headline-sm text-primary">Socratic Duck</span>
+<span class="font-label-sm text-label-sm text-outline">Just now</span>
+<span class="px-space-xs py-0.5 rounded bg-primary-container/20 text-primary font-label-sm text-label-sm">Eureka Stage</span>
+</div>
+<div class="bg-surface-container-high rounded-xl p-space-md text-on-surface shadow-md">
+<p class="font-body-lg text-body-lg leading-relaxed">
+              Bingo! Exactly. You created a block-scoped variable that shadowed your outer accumulator. What happens when you remove that <code class="bg-surface-container px-1.5 py-0.5 rounded text-primary font-code-md text-code-md">const</code> keyword on line 9?
+            </p>
+</div>
+</div>
+</div>
+</div>
+<!-- SOLVED SUCCESS MODAL / CELEBRATORY CALLOUT -->
+<div class="w-full bg-gradient-to-br from-surface-container-high via-surface-container to-surface-container-lowest rounded-xl p-space-lg shadow-2xl relative overflow-hidden mt-space-md" id="breakthrough-card">
+<!-- Glow ambient backdrop -->
+<div class="absolute top-0 right-0 w-96 h-96 bg-primary-container/15 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-space-md">
+<!-- Title & Metadata -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm pb-space-sm">
+<div class="flex items-center gap-space-sm">
+<span class="text-3xl"></span>
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">Breakthrough Unlocked! Bug Subdued by Socratic Reasoning.</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Session #DBG-8942 resolved in 3 reasoning cycles.</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-space-xs">
+<span class="px-space-sm py-1 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm font-semibold">
+              Type: Infinite Loop
+            </span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container-highest text-on-surface font-label-sm text-label-sm">
+              Scope: Scope Shadowing / Logic
+            </span>
+<span class="px-space-sm py-1 rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm">
+              Language: JavaScript
+            </span>
+</div>
+</div>
+<!-- 2-Box Root Cause & Lesson Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="bg-surface-container-lowest/80 rounded-lg p-space-md flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary">
+<span class="material-symbols-outlined text-[20px]">crisis_alert</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Target Root Cause</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Inner block-scoped <code class="text-primary font-code-md text-code-md">const cursor</code> shadowed outer <code class="text-primary font-code-md text-code-md">let cursor</code>, causing <code class="text-primary font-code-md text-code-md">while (cursor)</code> to evaluate the unchanged initial cursor indefinitely.
+            </p>
+</div>
+<div class="bg-surface-container-lowest/80 rounded-lg p-space-md flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-amber-300">
+<span class="material-symbols-outlined text-[20px]">lightbulb</span>
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Key Lesson Learned</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              Avoid re-declaring loop state variables inside conditional blocks; verify scope boundaries when updating pagination cursors.
+            </p>
+</div>
+</div>
+<!-- Bottom Action CTA Buttons -->
+<div class="flex flex-wrap items-center justify-end gap-space-sm pt-space-sm">
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+<span>Save to Debugging Memory &amp; Knowledge Base</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-container text-on-surface font-label-md text-label-md transition-colors flex items-center gap-1.5" type="button">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+<span>Export Post-Mortem</span>
+</button>
+<button class="px-space-md py-space-sm rounded-lg bg-primary-container text-on-primary-container font-headline-sm text-headline-sm hover:opacity-90 transition-all flex items-center gap-1.5 shadow-[0_0_16px_rgba(157,78,221,0.4)]" type="button">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+<span>Start Next Bug</span>
+</button>
+</div>
+</div>
+</div>
+<!-- BOTTOM STICKY INPUT BAR -->
+<div class="sticky bottom-4 w-full z-40 pt-space-xs">
+<div class="bg-surface-container-low/95 backdrop-blur-xl rounded-xl p-space-sm shadow-2xl flex items-center gap-space-sm">
+<!-- Purple Voice Record Mic -->
+<button class="w-10 h-10 rounded-lg bg-primary-container/20 text-primary hover:bg-primary-container hover:text-on-primary-container flex items-center justify-center transition-colors shrink-0" title="Toggle Dictation" type="button">
+<span class="material-symbols-outlined text-[20px]">mic</span>
+</button>
+<!-- Input Box -->
+<input class="flex-1 bg-transparent text-on-surface placeholder:text-outline font-body-md text-body-md px-space-xs py-2 focus:outline-none" placeholder="Talk back to your Rubber Duck (dictate or type your thoughts)..." type="text"/>
+<!-- Keyboard Shortcut Hint -->
+<span class="hidden md:inline-flex items-center font-label-sm text-label-sm text-outline px-space-xs py-0.5 rounded bg-surface-container-high select-none">
+          Cmd + Enter to Send
+        </span>
+<!-- Glowing Purple Send Arrow -->
+<button aria-label="Send response" class="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_16px_rgba(157,78,221,0.5)] hover:scale-105 active:scale-95 transition-transform shrink-0" type="button">
+<span class="material-symbols-outlined text-[20px]">arrow_upward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Interactive script for toggles and micro-interactions -->
+<script>
+    (function() {
+      const celebrationBtn = document.getElementById('toggle-celebration-btn');
+      const breakthroughCard = document.getElementById('breakthrough-card');
+      const muteBtn = document.getElementById('mute-btn');
+      const dictationBtn = document.getElementById('dictation-btn');
+
+      if (celebrationBtn && breakthroughCard) {
+        celebrationBtn.addEventListener('click', () => {
+          breakthroughCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          breakthroughCard.classList.add('ring-2', 'ring-primary-container');
+          setTimeout(() => {
+            breakthroughCard.classList.remove('ring-2', 'ring-primary-container');
+          }, 1500);
+        });
+      }
+
+      if (muteBtn) {
+        let muted = false;
+        muteBtn.addEventListener('click', () => {
+          muted = !muted;
+          muteBtn.innerHTML = muted 
+            ? '<span class="material-symbols-outlined text-[18px]">volume_off</span>' 
+            : '<span class="material-symbols-outlined text-[18px]">volume_up</span>';
+        });
+      }
+
+      if (dictationBtn) {
+        let active = true;
+        dictationBtn.addEventListener('click', () => {
+          active = !active;
+          dictationBtn.classList.toggle('opacity-50', !active);
+        });
+      }
+    })();
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest border-t border-surface-container-highest py-space-lg"><div class="w-full px-gutter-lg flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm font-code-md text-code-md text-on-surface-variant"><span class="material-symbols-outlined text-primary text-[18px]">psychology</span><span>Socratic Synthesis Engine • Zero Hallucination Mode Active</span></div><div class="flex items-center gap-space-md font-label-sm text-label-sm text-on-surface-variant"><span class="flex items-center gap-space-xs"><span class="w-2 h-2 rounded-full bg-primary-container"></span>Kernel 6.1-duck-rt</span><span>Telemetry: Nominal</span><span>© Duck Debugger Studio</span></div></div></footer></body></html>
