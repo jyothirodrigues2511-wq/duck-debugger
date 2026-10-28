@@ -336,10 +336,16 @@ All issues identified during the audit have been systematically remediated and v
    - **Verification**: Added `test_deploy_readiness_automatic_schema_and_seed`; verified fresh SQLite database initialization from an empty state in a temporary directory.
    - **Commit**: `b5f7fc0`
 
+7. **[HIGH] Socratic Context-Awareness, Non-Repetition & Visible Offline Fallback**
+   - **Root Cause**: Gemini calls silently fell back to generic heuristic questions when `GEMINI_API_KEY` was missing or unconfigured in Streamlit Cloud secrets, or when deprecated models (2.0/2.5) failed. The offline fallback defaulted to off-by-one loop boundary questions regardless of the actual bug, target language was not passed, previous questions were not tracked, and failures were hidden without user feedback.
+   - **Resolution**: Configured a resilient candidate model pool (`gemini-3.5-flash-lite`, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, `gemini-3.6-flash`). Updated prompts to incorporate target language, code snippet, full chat history, and an explicit list of previous duck questions with anti-repetition instructions. Rewrote `_generate_offline_socratic_response` across 7 distinct domain classifiers (Undefined/NameError, SyntaxError, TypeError, Null/None, Infinite Loop, Boundary/IndexError, General Logic) with question deduplication. Added visible UI notice (`AI engine offline, using basic mode`) in the Socratic Studio and logged detailed exceptions.
+   - **Verification**: Added `test_undefined_function_multi_turn_distinct_and_relevant`, `test_loop_off_by_one_questions_relate_to_loop_range`, and `test_api_key_removed_fallback_and_offline_notice`; all 29 tests pass with 100% success.
+   - **Commit**: Pending push
+
 ### Post-Remediation Verification Matrix
 
-- **Full Test Suite (Run 1)**: 26 passed, 0 failed, 0 errors.
-- **Full Test Suite (Run 2)**: 26 passed, 0 failed, 0 errors.
+- **Full Test Suite (Run 1)**: 29 passed, 0 failed, 0 errors.
+- **Full Test Suite (Run 2)**: 29 passed, 0 failed, 0 errors.
 - **Real End-to-End Flow**: Successfully executed multi-turn conversation via `st.chat_input`, triggered breakthrough detection, extracted post-mortem telemetry via Gemini API, persisted record to SQLite, and verified in analytics.
 - **Prompt Injection Defense**: 4/4 adversarial injection attempts neutralized with zero prompt or code leaks.
 - **Socratic Protocol Compliance**: Verified exactly ONE question per turn, max two sentences, and zero code solutions revealed.

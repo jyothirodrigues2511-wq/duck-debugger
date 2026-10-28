@@ -311,5 +311,107 @@ class TestScope1To10Exhaustive(unittest.TestCase):
                 except Exception:
                     pass
 
+    # ----------------------------------------------------
+    # SOCRATIC CONTEXT & OFFLINE RESILIENCE VERIFICATIONS
+    # ----------------------------------------------------
+    def test_undefined_function_multi_turn_distinct_and_relevant(self):
+        """
+        Verifies that for an undefined function bug, replies across 4 turns:
+        - Are distinct from each other (zero repetition)
+        - Relate to missing function / definition / error
+        - Never ask generic loop boundary questions
+        """
+        desc = "my code is not running maybe i didnt define the s function"
+        code = "x = 10\ny = s(x)\nprint(y)"
+        messages = [
+            {"role": "user", "content": f"{desc}\n\nCode snippet provided:\n{code}"}
+        ]
+
+        user_followups = [
+            "It gives me an error when running y = s(x)",
+            "I see NameError: name 's' is not defined",
+            "I haven't written def s(x) anywhere yet"
+        ]
+
+        replies = []
+        for turn in range(4):
+            reply = prompts._generate_offline_socratic_response(
+                turn_count=turn,
+                description=desc,
+                code=code,
+                messages=messages,
+                language="Python"
+            )
+            self.assertTrue(reply.startswith("Quack!"), f"Turn {turn} missing Quack! prefix: {reply}")
+            self.assertTrue(reply.endswith("?"), f"Turn {turn} not a question: {reply}")
+            self.assertNotIn(reply, replies, f"Turn {turn} repeated a previous question: {reply}")
+            replies.append(reply)
+
+            # Check that loop boundary questions are never asked
+            for forbidden in ["boundary index", "inclusive or exclusive", "range(", "off-by-one", "loop"]:
+                self.assertNotIn(forbidden, reply.lower(), f"Turn {turn} contained irrelevant loop phrasing: {reply}")
+
+            # Check relevance to definition/function/name/error/line
+            has_relevant_kw = any(kw in reply.lower() for kw in ["function", "define", "defined", "name", "error", "s(", "call", "line"])
+            self.assertTrue(has_relevant_kw, f"Turn {turn} question lacked relevant keywords: {reply}")
+
+            if turn < len(user_followups):
+                messages.append({"role": "assistant", "content": reply})
+                messages.append({"role": "user", "content": user_followups[turn]})
+
+        self.assertEqual(len(set(replies)), 4)
+
+    def test_loop_off_by_one_questions_relate_to_loop_range(self):
+        """Verifies that an off-by-one loop bug receives questions addressing loop boundaries or range."""
+        desc = "My loop is terminating one index too early and dropping the last item"
+        code = "for i in range(len(items) - 1):\n    print(items[i])"
+        messages = [
+            {"role": "user", "content": f"{desc}\n\nCode snippet provided:\n{code}"}
+        ]
+
+        reply = prompts._generate_offline_socratic_response(
+            turn_count=0,
+            description=desc,
+            code=code,
+            messages=messages,
+            language="Python"
+        )
+        self.assertTrue(reply.startswith("Quack!"))
+        self.assertTrue(reply.endswith("?"))
+
+        reply_lower = reply.lower()
+        has_loop_context = any(kw in reply_lower for kw in ["range", "index", "boundary", "iteration", "last", "exclusive", "inclusive"])
+        self.assertTrue(has_loop_context, f"Expected loop context in response: {reply}")
+
+    def test_api_key_removed_fallback_and_offline_notice(self):
+        """Verifies that when API key is missing or empty, generate_socratic_response returns is_fallback=True with error notice."""
+        desc = "my code is not running maybe i didnt define the s function"
+        code = "x = 10\ny = s(x)\nprint(y)"
+        messages = [
+            {"role": "user", "content": f"{desc}\n\nCode snippet provided:\n{code}"}
+        ]
+
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            mock_st = MagicMock()
+            mock_st.secrets = {}
+            with patch.dict(sys.modules, {"streamlit": mock_st}):
+                res = prompts.generate_socratic_response(
+                    messages=messages,
+                    code_snippet=code,
+                    bug_description=desc,
+                    turn_count=0,
+                    api_key="",
+                    language="Python",
+                    return_details=True
+                )
+                self.assertIsInstance(res, dict)
+                self.assertTrue(res["is_fallback"])
+                self.assertIsNotNone(res["error"])
+                self.assertIn("GEMINI_API_KEY", res["error"])
+                self.assertTrue(res["text"].startswith("Quack!"))
+                self.assertTrue(res["text"].endswith("?"))
+                self.assertNotIn("boundary index", res["text"].lower())
+
+
 if __name__ == "__main__":
     unittest.main()

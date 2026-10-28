@@ -555,6 +555,10 @@ def render_socratic_studio():
         st.session_state.code_snippet_input = ""
     if "selected_language" not in st.session_state:
         st.session_state.selected_language = "Python"
+    if "ai_offline" not in st.session_state:
+        st.session_state.ai_offline = not bool(gemini_api_key)
+    if "ai_offline_error" not in st.session_state:
+        st.session_state.ai_offline_error = None if bool(gemini_api_key) else "No GEMINI_API_KEY detected in Streamlit Secrets or environment"
 
     # Subheader / Session Status Bar
     col_sub_left, col_sub_right = st.columns([3, 1], vertical_alignment="center")
@@ -580,6 +584,21 @@ def render_socratic_studio():
             """,
             unsafe_allow_html=True
         )
+
+        if st.session_state.get("ai_offline"):
+            err_text = html.escape(str(st.session_state.get("ai_offline_error") or "AI engine offline, using basic mode"))
+            st.markdown(
+                f"""
+                <div class="hover-lift" style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; font-family:'JetBrains Mono'; font-size:11px; margin-bottom:12px;">
+                  <span class="material-symbols-outlined" style="font-size:18px; color:#f87171;">cloud_off</span>
+                  <div>
+                    <span style="font-weight:700; color:#fecaca;">AI engine offline, using basic mode:</span>
+                    <span style="color:#fca5a5; margin-left:6px;">{err_text}</span>
+                  </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     with col_sub_right:
         if st.session_state.session_started or len(st.session_state.messages) > 0:
@@ -727,20 +746,30 @@ def render_socratic_studio():
         skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Socratic Engine Syncing..."), unsafe_allow_html=True)
 
         try:
-            duck_q = prompts.generate_socratic_response(
+            res = prompts.generate_socratic_response(
                 messages=st.session_state.messages,
                 code_snippet=safe_code,
                 bug_description=safe_desc,
                 turn_count=st.session_state.turn_count,
-                api_key=gemini_api_key
+                api_key=gemini_api_key,
+                language=st.session_state.selected_language,
+                return_details=True
             )
+            duck_q = res.get("text", "")
+            st.session_state.ai_offline = bool(res.get("is_fallback"))
+            st.session_state.ai_offline_error = res.get("error")
+            if st.session_state.ai_offline:
+                logger.warning("AI engine offline fallback active: %s", st.session_state.ai_offline_error)
         except Exception as e:
-            logger.warning("Gemini Socratic call exception: %s. Using fallback heuristic.", e)
+            logger.error("Gemini Socratic call exception: %s. Using fallback heuristic.", e, exc_info=True)
+            st.session_state.ai_offline = True
+            st.session_state.ai_offline_error = str(e)
             duck_q = prompts._generate_offline_socratic_response(
                 st.session_state.turn_count,
                 safe_desc,
                 safe_code,
-                st.session_state.messages
+                st.session_state.messages,
+                st.session_state.selected_language
             )
 
         if not duck_q or not duck_q.strip():
