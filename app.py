@@ -48,16 +48,11 @@ st.set_page_config(
 # Initialize database
 db.init_db()
 
-# Load Gemini API Key from Streamlit Secrets with .env as local fallback
-gemini_api_key = ""
-try:
-    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-        gemini_api_key = str(st.secrets["GEMINI_API_KEY"]).strip()
-except Exception:
-    pass
+# Resolve active Gemini API key dynamically across st.secrets, .env, and environment
+def get_current_api_key() -> str:
+    return prompts.resolve_gemini_api_key() or ""
 
-if not gemini_api_key:
-    gemini_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+gemini_api_key = get_current_api_key()
 
 # --- Active Route Detection ---
 active_view = st.query_params.get("view", "studio")
@@ -555,10 +550,20 @@ def render_socratic_studio():
         st.session_state.code_snippet_input = ""
     if "selected_language" not in st.session_state:
         st.session_state.selected_language = "Python"
-    if "ai_offline" not in st.session_state:
-        st.session_state.ai_offline = not bool(gemini_api_key)
-    if "ai_offline_error" not in st.session_state:
-        st.session_state.ai_offline_error = None if bool(gemini_api_key) else "No GEMINI_API_KEY detected in Streamlit Secrets or environment"
+    active_key = prompts.resolve_gemini_api_key()
+    if active_key:
+        if st.session_state.get("ai_offline_error") in (
+            "No valid GEMINI_API_KEY detected in parameters, st.secrets, or environment",
+            "No GEMINI_API_KEY detected in Streamlit Secrets or environment"
+        ):
+            st.session_state.ai_offline = False
+            st.session_state.ai_offline_error = None
+        elif "ai_offline" not in st.session_state:
+            st.session_state.ai_offline = False
+            st.session_state.ai_offline_error = None
+    else:
+        st.session_state.ai_offline = True
+        st.session_state.ai_offline_error = "No valid GEMINI_API_KEY detected in parameters, st.secrets, or environment"
 
     # Subheader / Session Status Bar
     col_sub_left, col_sub_right = st.columns([3, 1], vertical_alignment="center")
@@ -709,13 +714,14 @@ def render_socratic_studio():
         if user_followup and prompts.detect_user_breakthrough(user_followup):
             st.session_state.is_saving = True
             skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+            current_key = prompts.resolve_gemini_api_key()
             try:
                 extracted = prompts.extract_solved_json(
                     conversation=st.session_state.messages,
                     code_snippet=st.session_state.code_snippet_input,
                     bug_description=st.session_state.bug_desc_input,
                     language=st.session_state.selected_language,
-                    api_key=gemini_api_key
+                    api_key=current_key
                 )
             except Exception as err:
                 logger.warning("Error extracting JSON, using fallback: %s", err)
@@ -745,13 +751,14 @@ def render_socratic_studio():
         # Trigger Skeleton Loading Screen exclusively during active synthesis
         skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Socratic Engine Syncing..."), unsafe_allow_html=True)
 
+        current_key = prompts.resolve_gemini_api_key()
         try:
             res = prompts.generate_socratic_response(
                 messages=st.session_state.messages,
                 code_snippet=safe_code,
                 bug_description=safe_desc,
                 turn_count=st.session_state.turn_count,
-                api_key=gemini_api_key,
+                api_key=current_key,
                 language=st.session_state.selected_language,
                 return_details=True
             )

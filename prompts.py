@@ -127,17 +127,135 @@ def detect_user_breakthrough(text: Optional[str]) -> bool:
     return False
 
 
+def clean_api_key(key: Optional[Any]) -> str:
+    """
+    Cleans an API key by converting to string, stripping whitespace,
+    surrounding single/double quotes, and internal newlines/carriage returns.
+    """
+    if key is None:
+        return ""
+    val = str(key).strip()
+    val = val.strip("'\"`").strip()
+    val = val.replace("\r", "").replace("\n", "").strip()
+    return val
+
+
+def mask_api_key(key: Optional[str]) -> str:
+    """Safely masks an API key, showing only the first 4 and last 4 characters."""
+    if not key:
+        return "(empty)"
+    cleaned = clean_api_key(key)
+    if len(cleaned) <= 8:
+        return "***"
+    return f"{cleaned[:4]}...{cleaned[-4:]}"
+
+
 def is_valid_gemini_api_key(key: Optional[str]) -> bool:
-    """Checks whether a string resembles a valid Gemini API key rather than a placeholder."""
+    """
+    Checks whether a string is a potentially valid API key rather than empty or a placeholder.
+    Allows standard 'AIza' keys, newer 'AQ.' keys, and any valid developer API key.
+    Rejects empty strings, whitespace, and known placeholder values.
+    """
     if not key or not isinstance(key, str):
         return False
-    k = key.strip()
-    if not k or len(k) < 15:
+    k = clean_api_key(key)
+    if not k or len(k) < 8:
         return False
     lower_k = k.lower()
-    if any(p in lower_k for p in ("your_", "api_key", "placeholder", "todo", "none", "null", "<api")):
+    known_placeholders = {
+        "your_api_key_here",
+        "your_gemini_api_key",
+        "your_key_here",
+        "your_api_key",
+        "placeholder",
+        "todo",
+        "none",
+        "null",
+        "<api_key>",
+        "<gemini_api_key>",
+        "<your_key>",
+        "enter_key_here",
+    }
+    if lower_k in known_placeholders:
+        return False
+    if lower_k.startswith(("your_", "enter_", "<api", "<gemini", "todo:")):
         return False
     return True
+
+
+def resolve_gemini_api_key(explicit_key: Optional[str] = None) -> Optional[str]:
+    """
+    Resolves the Gemini API key following this precedence:
+    1. Explicit parameter (if non-empty and not placeholder)
+    2. Streamlit Cloud Secrets (st.secrets), supporting:
+       - Direct keys: GEMINI_API_KEY, gemini_api_key, GOOGLE_API_KEY, google_api_key, GEMINI_KEY, gemini_key, API_KEY
+       - Sections: [gemini], [google], [general], [secrets], [default]
+       - Nested / recursive dictionary discovery
+    3. Environment variables: GEMINI_API_KEY, GOOGLE_API_KEY, GEMINI_KEY
+    Returns cleaned key stripped of whitespace and quotes, or None if not found.
+    """
+    # 1. Explicit parameter
+    if explicit_key:
+        cleaned = clean_api_key(explicit_key)
+        if is_valid_gemini_api_key(cleaned):
+            return cleaned
+
+    # 2. Streamlit Cloud secrets
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            try:
+                secrets_obj = st.secrets
+                candidate_keys = (
+                    "GEMINI_API_KEY",
+                    "gemini_api_key",
+                    "GOOGLE_API_KEY",
+                    "google_api_key",
+                    "GEMINI_KEY",
+                    "gemini_key",
+                    "API_KEY",
+                    "api_key",
+                )
+                for ck in candidate_keys:
+                    if ck in secrets_obj:
+                        cleaned = clean_api_key(secrets_obj[ck])
+                        if is_valid_gemini_api_key(cleaned):
+                            return cleaned
+
+                candidate_sections = ("gemini", "google", "general", "secrets", "default")
+                for sec in candidate_sections:
+                    if sec in secrets_obj:
+                        sub = secrets_obj[sec]
+                        if hasattr(sub, "get") or isinstance(sub, dict):
+                            for sub_k in ("api_key", "key", "GEMINI_API_KEY", "gemini_api_key", "GOOGLE_API_KEY", "google_api_key"):
+                                val = sub.get(sub_k)
+                                if val:
+                                    cleaned = clean_api_key(val)
+                                    if is_valid_gemini_api_key(cleaned):
+                                        return cleaned
+
+                for k, v in getattr(secrets_obj, "items", lambda: [])():
+                    if hasattr(v, "get") or isinstance(v, dict):
+                        for sub_k in ("api_key", "key", "GEMINI_API_KEY", "gemini_api_key", "GOOGLE_API_KEY", "google_api_key"):
+                            val = v.get(sub_k)
+                            if val:
+                                cleaned = clean_api_key(val)
+                                if is_valid_gemini_api_key(cleaned):
+                                    return cleaned
+            except Exception as sec_err:
+                logger.debug("st.secrets inspection encountered: %s", sec_err)
+    except ImportError:
+        pass
+
+    # 3. Environment variables
+    for env_var in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_KEY"):
+        val = os.environ.get(env_var, "")
+        if val:
+            cleaned = clean_api_key(val)
+            if is_valid_gemini_api_key(cleaned):
+                return cleaned
+
+    return None
 
 
 def get_gemini_client(api_key: Optional[str] = None):
@@ -146,25 +264,20 @@ def get_gemini_client(api_key: Optional[str] = None):
     Returns None immediately for placeholder, malformed, or empty keys.
     Checks explicit parameter, Streamlit Cloud secrets (st.secrets), and environment (.env).
     """
-    key = ""
-    if api_key and is_valid_gemini_api_key(api_key):
-        key = api_key.strip()
+    cleaned = clean_api_key(api_key) if api_key else ""
+    if cleaned:
+        if not is_valid_gemini_api_key(cleaned):
+            return None
+        key = cleaned
     else:
-        try:
-            import streamlit as st
-            if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
-                key = str(st.secrets["GEMINI_API_KEY"]).strip()
-        except Exception:
-            pass
-        if not key or not is_valid_gemini_api_key(key):
-            key = os.environ.get("GEMINI_API_KEY", "").strip()
+        key = resolve_gemini_api_key()
 
-    if not is_valid_gemini_api_key(key):
+    if not key:
         return None
 
     try:
         from google import genai
-        return genai.Client(api_key=key.strip())
+        return genai.Client(api_key=key)
     except Exception as e:
         logger.warning("Could not initialize google.genai: %s", e)
         return None

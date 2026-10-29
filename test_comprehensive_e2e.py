@@ -413,5 +413,55 @@ class TestScope1To10Exhaustive(unittest.TestCase):
                 self.assertNotIn("boundary index", res["text"].lower())
 
 
+    def test_gemini_api_key_formats_and_non_placeholder_validation(self):
+        """Verifies clean_api_key, is_valid_gemini_api_key, and mask_api_key with various prefixes and quotes."""
+        # 1. AQ keys and AIza keys
+        self.assertTrue(prompts.is_valid_gemini_api_key("AQ.A12345678901234567890cgLA"))
+        self.assertTrue(prompts.is_valid_gemini_api_key("AIzaSy123456789012345678901234567"))
+
+        # 2. Quotes and spaces
+        self.assertTrue(prompts.is_valid_gemini_api_key(' "AQ.A12345678901234567890cgLA" '))
+        self.assertEqual(prompts.clean_api_key(' "AQ.A12345678901234567890cgLA" '), "AQ.A12345678901234567890cgLA")
+        self.assertEqual(prompts.clean_api_key("'AQ.A12345678901234567890cgLA'"), "AQ.A12345678901234567890cgLA")
+
+        # 3. Keys containing random substring 'none' or 'null' should NOT be rejected
+        self.assertTrue(prompts.is_valid_gemini_api_key("AQ.A123none45678901234567890cgLA"))
+        self.assertTrue(prompts.is_valid_gemini_api_key("AQ.A123null45678901234567890cgLA"))
+
+        # 4. Obvious placeholders rejected
+        for ph in ["your_api_key_here", "your_gemini_api_key", "YOUR_GEMINI_API_KEY", "placeholder", "todo", "none", "null", "<api_key>"]:
+            self.assertFalse(prompts.is_valid_gemini_api_key(ph), f"Placeholder should be rejected: {ph}")
+
+        # 5. Masking
+        self.assertEqual(prompts.mask_api_key("AQ.A12345678901234567890cgLA"), "AQ.A...cgLA")
+
+    def test_resolve_gemini_api_key_case_and_nested_secrets(self):
+        """Verifies resolve_gemini_api_key handles lowercase, google prefix, nested sections, and quotes."""
+        # 1. Lowercase in st.secrets
+        mock_st = MagicMock()
+        mock_st.secrets = {"gemini_api_key": "AQ.A_from_lower_123456"}
+        with patch.dict(sys.modules, {"streamlit": mock_st}):
+            resolved = prompts.resolve_gemini_api_key()
+            self.assertEqual(resolved, "AQ.A_from_lower_123456")
+
+        # 2. GOOGLE_API_KEY in st.secrets
+        mock_st.secrets = {"GOOGLE_API_KEY": "AQ.A_from_google_key_123456"}
+        with patch.dict(sys.modules, {"streamlit": mock_st}):
+            resolved = prompts.resolve_gemini_api_key()
+            self.assertEqual(resolved, "AQ.A_from_google_key_123456")
+
+        # 3. Nested [gemini] table in st.secrets
+        mock_st.secrets = {"gemini": {"api_key": "AQ.A_from_section_123456"}}
+        with patch.dict(sys.modules, {"streamlit": mock_st}):
+            resolved = prompts.resolve_gemini_api_key()
+            self.assertEqual(resolved, "AQ.A_from_section_123456")
+
+        # 4. Quoted string in st.secrets
+        mock_st.secrets = {"GEMINI_API_KEY": '"AQ.A_from_quoted_secret_123456"'}
+        with patch.dict(sys.modules, {"streamlit": mock_st}):
+            resolved = prompts.resolve_gemini_api_key()
+            self.assertEqual(resolved, "AQ.A_from_quoted_secret_123456")
+
+
 if __name__ == "__main__":
     unittest.main()
