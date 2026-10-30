@@ -9,7 +9,7 @@ import json
 import re
 import time
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,7 @@ STRICT SAFETY & BEHAVIOR RULES (ABSOLUTE - NO EXCEPTIONS):
 7. Handle messy voice-dictated input gracefully: ignore filler words ("um", "like", "uh", "you know", "and then", "so basically"), extract the core symptom, and focus on the logical discrepancy.
 8. Output must strictly contain at most 2 sentences and exactly one question mark (?).
 9. NEVER congratulate in place of asking, NEVER say "anything else you'd like to explore", never say "feel free to", "let me know", "is there anything else", and NEVER end the session on your own. Every duck reply must be strictly ONE question of at most two sentences that moves toward the root cause or takeaway lesson. If the user states that their code is working, ask only what the root cause was.
+10. CODE-ONLY START: If the developer provides only a code snippet without a bug description, your very first question MUST ask what they expected the code to do.
 """
 
 EXTRACTION_SYSTEM_PROMPT = """You are an expert code analyst for Duck Debugger.
@@ -344,9 +345,9 @@ def get_gemini_client(api_key: Optional[str] = None):
     Returns None immediately for placeholder, malformed, or empty keys.
     Checks explicit parameter, Streamlit Cloud secrets (st.secrets), and environment (.env).
     """
-    cleaned = clean_api_key(api_key) if api_key else ""
-    if cleaned:
-        if not is_valid_gemini_api_key(cleaned):
+    if api_key is not None:
+        cleaned = clean_api_key(api_key)
+        if not cleaned or not is_valid_gemini_api_key(cleaned):
             return None
         key = cleaned
     else:
@@ -506,6 +507,104 @@ def clean_socratic_response(text: str) -> str:
     return truncated
 
 
+def validate_session_start(
+    bug_description: Optional[str],
+    code_snippet: Optional[str]
+) -> Tuple[bool, str, str]:
+    """
+    Validates starting inputs for Socratic Studio.
+    Supports starting with:
+    - description only (dictated or typed)
+    - code only (snippet provided)
+    - both
+    - neither (returns can_start=False with friendly guidance)
+
+    Returns (can_start: bool, initial_message: str, notice: str).
+    """
+    desc = (bug_description or "").strip()
+    code = (code_snippet or "").strip()
+
+    if not desc and not code:
+        return (
+            False,
+            "",
+            "Please dictate what is going wrong with Wispr Flow or paste your code snippet above to begin."
+        )
+
+    if desc and code:
+        initial_msg = f"{desc}\n\nCode snippet provided:\n{code}"
+    elif code:
+        initial_msg = f"Code snippet provided:\n{code}"
+    else:
+        initial_msg = desc
+
+    return (True, initial_msg, "")
+
+
+def render_waveform_card(is_thinking: bool = False) -> str:
+    """
+    Renders the Duck waveform card.
+    Animates ONLY when is_thinking is True (active loading state while generating reply).
+    When is_thinking is False (idle), the waveform is static and resting.
+    Label is strictly 'Duck is thinking'.
+    No fake audio or kbps claims.
+    """
+    if is_thinking:
+        status_badge = """
+        <span style="color:#9d4edd; font-weight:600; font-size:11px; font-family:'JetBrains Mono'; display:inline-flex; align-items:center; gap:6px;">
+          <span style="width:6px; height:6px; border-radius:9999px; background:#9d4edd; box-shadow:0 0 8px #9d4edd;"></span>
+          Thinking...
+        </span>
+        """
+        svg_body = """
+        <style>
+          @keyframes waveUndulate {
+            0% { transform: translateY(0px) scaleY(0.7); }
+            50% { transform: translateY(-3px) scaleY(1.3); }
+            100% { transform: translateY(0px) scaleY(0.7); }
+          }
+          @keyframes waveFlow {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -120; }
+          }
+          .duck-wave-active-main {
+            animation: waveFlow 2.4s linear infinite, waveUndulate 1.2s ease-in-out infinite alternate;
+            stroke-dasharray: 14, 6;
+            transform-origin: center;
+          }
+          .duck-wave-active-sub {
+            animation: waveFlow 3.2s linear infinite reverse, waveUndulate 1.5s ease-in-out infinite alternate;
+            stroke-dasharray: 10, 5;
+            transform-origin: center;
+          }
+        </style>
+        <svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">
+          <path class="duck-wave-active-main" d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#9d4edd" stroke-width="2.5" stroke-linecap="round"/>
+          <path class="duck-wave-active-sub" d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#c77dff" stroke-width="1.5" stroke-opacity="0.7"/>
+        </svg>
+        """
+    else:
+        status_badge = """
+        <span style="color:#7b7582; font-weight:600; font-size:11px; font-family:'JetBrains Mono';">Ready</span>
+        """
+        svg_body = """
+        <svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">
+          <path d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#52326b" stroke-width="2.0" stroke-linecap="round" opacity="0.45"/>
+          <path d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#3b2052" stroke-width="1.5" opacity="0.3"/>
+        </svg>
+        """
+
+    return f"""
+    <div style="background:#050d25; border:1px solid #2c344d; border-radius:12px; padding:12px 16px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5; margin-bottom:6px;">
+        <span>Duck is thinking</span>
+        {status_badge}
+      </div>
+      {svg_body}
+    </div>
+    """
+
+
 def generate_socratic_response(
     messages: List[Dict[str, str]],
     code_snippet: Optional[str],
@@ -520,11 +619,13 @@ def generate_socratic_response(
     Guarantees no code leak, max 2 sentences, exactly 1 question.
     Sends code, description, language, and full chat history to Gemini.
     Instructs model never to repeat previous duck questions.
+    If only code is given without a description, the first question asks what was expected.
     """
     safe_code = (code_snippet or "").strip()[:8000]
     safe_desc = (bug_description or "").strip()[:4000]
     safe_messages = messages or []
     safe_language = (language or "Python").strip()
+    is_code_only = bool(safe_code and not safe_desc)
 
     # If the user reports success without naming a cause, ask the single root-cause question
     latest_user_msg = next((m.get("content", "") for m in reversed(safe_messages) if m.get("role") == "user"), "")
@@ -544,7 +645,11 @@ def generate_socratic_response(
     if turn_count >= 3:
         escalation_hint = " The developer has answered 3 or more turns and is still stuck. Give a slightly stronger guided conceptual clue pointing toward the suspicious line or variable, but DO NOT provide code or the solution."
 
-    full_system = f"{SOCRATIC_SYSTEM_PROMPT}\nTarget Programming Language: {safe_language}\nTurn Count: {turn_count}.{escalation_hint}"
+    code_only_rule = ""
+    if is_code_only and turn_count <= 1:
+        code_only_rule = "\nCRITICAL: The developer provided only a code snippet without a bug description. Your very first question MUST ask what they expected the code to do.\n"
+
+    full_system = f"{SOCRATIC_SYSTEM_PROMPT}\nTarget Programming Language: {safe_language}\nTurn Count: {turn_count}.{escalation_hint}{code_only_rule}"
 
     # Extract previous duck questions to instruct model not to repeat them
     previous_duck_questions = [
@@ -553,14 +658,15 @@ def generate_socratic_response(
         if m.get("role") == "assistant" and (m.get("content") or "").strip()
     ]
 
+    desc_display = safe_desc if safe_desc else "[None provided - user started with code snippet only]"
     context_prompt = f"""[BUG CONTEXT]
 Target Programming Language: {safe_language}
-User Voice Description: {safe_desc}
+User Voice Description: {desc_display}
 Code Snippet:
 ```{safe_language.lower()}
 {safe_code}
 ```
-
+{code_only_rule}
 [CHAT HISTORY]
 """
     for msg in safe_messages:
@@ -593,6 +699,9 @@ Code Snippet:
                 if raw_text:
                     if validate_socratic_reply(raw_text):
                         cleaned = clean_socratic_response(raw_text)
+                        if is_code_only and (turn_count <= 1 or not previous_duck_questions):
+                            if not any(k in cleaned.lower() for k in ("expect", "behavior", "output", "supposed", "intend", "do?")):
+                                cleaned = "Quack! What did you expect this code to do?"
                         if return_details:
                             return {
                                 "text": cleaned,
@@ -636,6 +745,7 @@ def _generate_offline_socratic_response(
     Analyzes keywords from description, code, and latest user message to select
     relevant inquiry domains (undefined variables/functions, syntax, types, nulls, loops, logic).
     Guarantees zero question repetition across turns and never defaults to boundary questions for unrelated bugs.
+    If only code is given without a description, the first question asks what was expected.
     """
     # 1. Gather all previously asked duck questions to guarantee ZERO repetition
     asked_texts = [
@@ -651,8 +761,16 @@ def _generate_offline_socratic_response(
             latest_user_msg = (m.get("content") or "").strip()
             break
 
-    desc_lower = (description or "").lower()
-    code_lower = (code or "").lower()
+    desc_clean = (description or "").strip()
+    code_clean = (code or "").strip()
+    is_empty_desc = not desc_clean or desc_clean.lower() in ("debugging logic in session", "none", "# no description", "# no code snippet provided")
+
+    # If only code is given without a description, first question asks what was expected
+    if is_empty_desc and code_clean and (turn_count <= 1 or not asked_texts):
+        return "Quack! What did you expect this code to do?"
+
+    desc_lower = desc_clean.lower()
+    code_lower = code_clean.lower()
     user_latest_lower = latest_user_msg.lower()
     combined = f"{desc_lower} {code_lower} {user_latest_lower}"
 
@@ -708,9 +826,9 @@ def _generate_offline_socratic_response(
             "Quack! Can you trace the value of the loop state across the first two iterations to see if it moves closer to the exit condition?"
         ])
 
-    # Category 6: Loop Boundary / IndexError (ONLY if actually a loop or indexed collection)
-    loop_kw = ("index", "range(", "slice", "bound", "overflow", "indexerror", "out of bounds", "off-by-one", "fencepost")
-    if any(k in combined for k in loop_kw) and any(kw in code_lower for kw in ("for ", "while ", "range", "[", "len")):
+    # Category 6: Loop Boundary / IndexError (if loop structure in code or loop issue described)
+    loop_kw = ("index", "range(", "slice", "bound", "overflow", "indexerror", "out of bounds", "off-by-one", "fencepost", "loop")
+    if any(k in combined for k in loop_kw) and (not code_clean or any(kw in code_lower for kw in ("for ", "while ", "range", "[", "len"))):
         categories.append([
             "Quack! What are the exact minimum and maximum index values accessed during this iteration versus the length of the list?",
             f"Quack! In {language}, is the upper bound of that range or slice inclusive or exclusive?",

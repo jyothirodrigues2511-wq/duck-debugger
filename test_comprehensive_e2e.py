@@ -124,9 +124,10 @@ class TestScope1To10Exhaustive(unittest.TestCase):
     def test_scope4_llm_client_resilience(self):
         """Tests retries, 429 exponential backoff, safety filters, and placeholder key detection."""
         # 1. Invalid and placeholder keys
-        for bad_key in ["", None, "your_api_key_here", "YOUR_GEMINI_API_KEY", "placeholder", "todo"]:
-            self.assertFalse(prompts.is_valid_gemini_api_key(bad_key))
-            self.assertIsNone(prompts.get_gemini_client(api_key=bad_key))
+        with patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            for bad_key in ["", None, "your_api_key_here", "YOUR_GEMINI_API_KEY", "placeholder", "todo"]:
+                self.assertFalse(prompts.is_valid_gemini_api_key(bad_key))
+                self.assertIsNone(prompts.get_gemini_client(api_key=bad_key))
 
         # 2. Safety filter blocked response
         mock_client = MagicMock()
@@ -721,6 +722,101 @@ class TestScope1To10Exhaustive(unittest.TestCase):
                     os.remove(temp_db)
                 except Exception:
                     pass
+
+
+    def test_session_start_with_description_only(self):
+        """Verifies session can start with only spoken/dictated description (no code snippet)."""
+        desc = "my function is doing addition instead of multiplication"
+        can_start, initial_msg, notice = prompts.validate_session_start(desc, "")
+        self.assertTrue(can_start)
+        self.assertEqual(initial_msg, desc)
+        self.assertEqual(notice, "")
+
+        # Socratic generation works offline with description only
+        res = prompts.generate_socratic_response(
+            messages=[{"role": "user", "content": initial_msg}],
+            code_snippet="",
+            bug_description=desc,
+            turn_count=0,
+            api_key="",
+            return_details=True
+        )
+        self.assertTrue(res["text"].startswith("Quack!"))
+        self.assertTrue(res["text"].endswith("?"))
+        self.assertEqual(res["text"].count("?"), 1)
+
+    def test_session_start_with_code_only(self):
+        """
+        Verifies session can start with code snippet only (description empty).
+        The duck's first question must ask what they expected the code to do.
+        """
+        code = "def calc(x):\n    return x + 10\ny = calc(5)"
+        can_start, initial_msg, notice = prompts.validate_session_start("", code)
+        self.assertTrue(can_start)
+        self.assertIn("Code snippet provided:", initial_msg)
+        self.assertEqual(notice, "")
+
+        # Socratic generation for code-only start asks what was expected
+        res = prompts.generate_socratic_response(
+            messages=[{"role": "user", "content": initial_msg}],
+            code_snippet=code,
+            bug_description="",
+            turn_count=0,
+            api_key="",
+            return_details=True
+        )
+        self.assertTrue(res["text"].startswith("Quack!"))
+        self.assertTrue(res["text"].endswith("?"))
+        self.assertEqual(res["text"].count("?"), 1)
+        self.assertIn("expect", res["text"].lower())
+
+    def test_session_start_with_both_description_and_code(self):
+        """Verifies session can start with both description and code snippet."""
+        desc = "my loop drops the last element"
+        code = "for i in range(len(items) - 1):\n    print(items[i])"
+        can_start, initial_msg, notice = prompts.validate_session_start(desc, code)
+        self.assertTrue(can_start)
+        self.assertIn(desc, initial_msg)
+        self.assertIn("Code snippet provided:", initial_msg)
+        self.assertEqual(notice, "")
+
+        res = prompts.generate_socratic_response(
+            messages=[{"role": "user", "content": initial_msg}],
+            code_snippet=code,
+            bug_description=desc,
+            turn_count=0,
+            api_key="",
+            return_details=True
+        )
+        self.assertTrue(res["text"].startswith("Quack!"))
+        self.assertTrue(res["text"].endswith("?"))
+
+    def test_session_start_with_neither_shows_clear_message_and_no_crash(self):
+        """Verifies starting with neither description nor code fails gracefully with clear guidance."""
+        can_start, initial_msg, notice = prompts.validate_session_start("   ", "\n  \t")
+        self.assertFalse(can_start)
+        self.assertEqual(initial_msg, "")
+        self.assertTrue(len(notice) > 0)
+        self.assertIn("wispr", notice.lower())
+        self.assertIn("code", notice.lower())
+
+    def test_render_waveform_card_idle_and_thinking_states(self):
+        """Verifies waveform card animates only when thinking, uses honest labels, and has no fake audio claims."""
+        idle_card = prompts.render_waveform_card(is_thinking=False)
+        self.assertIn("Duck is thinking", idle_card)
+        self.assertIn("Ready", idle_card)
+        self.assertNotIn("128 kbps", idle_card)
+        self.assertNotIn("Continuous Listening", idle_card)
+        self.assertNotIn("Vocal Cadence", idle_card)
+        self.assertNotIn("duck-wave-active-main", idle_card)
+
+        thinking_card = prompts.render_waveform_card(is_thinking=True)
+        self.assertIn("Duck is thinking", thinking_card)
+        self.assertIn("Thinking...", thinking_card)
+        self.assertIn("duck-wave-active-main", thinking_card)
+        self.assertNotIn("128 kbps", thinking_card)
+        self.assertNotIn("Continuous Listening", thinking_card)
+        self.assertNotIn("Vocal Cadence", thinking_card)
 
 
 if __name__ == "__main__":

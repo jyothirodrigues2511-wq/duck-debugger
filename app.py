@@ -421,13 +421,13 @@ def render_full_skeleton_screen(route_name="socratic-studio.duck", label="Socrat
 
       <!-- 2-Column Split Grid Shimmer -->
       <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
-        <!-- Left Skeleton Card: Audio & Dialogue -->
+        <!-- Left Skeleton Card: Dialogue Feed -->
         <div style="padding:22px; border-radius:16px; background:#131a33; border:1px solid #2c344d; display:flex; flex-direction:column; gap:16px;">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div class="skeleton-shimmer" style="width:160px; height:18px;"></div>
             <div class="skeleton-shimmer" style="width:70px; height:18px; border-radius:9999px;"></div>
           </div>
-          <!-- Audio Waveform Skeleton -->
+          <!-- Waveform Skeleton -->
           <div style="background:#050d25; border:1px solid #212942; border-radius:12px; padding:16px; height:65px; display:flex; align-items:center; justify-content:space-between; gap:6px;">
             <div class="skeleton-shimmer" style="width:6px; height:24px;"></div>
             <div class="skeleton-shimmer" style="width:6px; height:45px;"></div>
@@ -537,6 +537,9 @@ if is_route_transition:
     time.sleep(0.55)
     trans_box.empty()
     st.session_state.current_route = active_view
+
+render_waveform_card = prompts.render_waveform_card
+
 
 # ==============================================================================
 # VIEW 1: SOCRATIC STUDIO
@@ -722,32 +725,19 @@ def render_socratic_studio():
                 <span class="material-symbols-outlined" style="color:#9d4edd; font-size:22px;">mic</span>
                 <span style="font-size:1.1rem; font-weight:700; color:#dbe1ff;">Duck Dialogue Feed</span>
               </div>
-              <span class="hover-pill" style="font-size:11px; font-family:'JetBrains Mono'; padding:2px 8px; border-radius:9999px; background:#131a33; color:#d0c2d5; border:1px solid #2c344d;">Continuous Listening</span>
+              <span class="hover-pill" style="font-size:11px; font-family:'JetBrains Mono'; padding:2px 8px; border-radius:9999px; background:#131a33; color:#d0c2d5; border:1px solid #2c344d;">Voice input: dictate with Wispr Flow</span>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Interactive Waveform Graph
-        st.markdown(
-            """
-            <div style="background:#050d25; border:1px solid #2c344d; border-radius:12px; padding:12px 16px; margin-bottom:16px;">
-              <div style="display:flex; justify-content:space-between; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5; margin-bottom:6px;">
-                <span>Vocal Cadence Frequency</span>
-                <span style="color:#9d4edd; font-weight:600;">128 kbps OPUS</span>
-              </div>
-              <svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">
-                <path d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#9d4edd" stroke-width="2.5" stroke-linecap="round"/>
-                <path d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#6b13af" stroke-width="1.5" stroke-opacity="0.5"/>
-              </svg>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
+        # Interactive Waveform Graph (Animates only while Duck is thinking)
+        waveform_placeholder = st.empty()
+        waveform_placeholder.markdown(render_waveform_card(is_thinking=False), unsafe_allow_html=True)
 
         st.text_area(
-            "Spoken Thought / Bug Description",
-            placeholder="Talk aloud: 'My loop is terminating one index too early and dropping the last item...'",
+            "Say what is going wrong (dictate with Wispr Flow)",
+            placeholder="Click here, hold your Wispr hotkey, and say what is going wrong. Example: my code is not running and I think I forgot to define a function.",
             key="bug_desc_input",
             height=100
         )
@@ -784,20 +774,24 @@ def render_socratic_studio():
 
     # Socratic Turn Execution Engine
     def execute_socratic_turn(user_followup=None):
-        st.session_state.session_started = True
-
         if user_followup:
+            st.session_state.session_started = True
             st.session_state.messages.append({"role": "user", "content": user_followup})
             st.session_state.turn_count += 1
         elif len(st.session_state.messages) == 0:
-            initial_prompt = st.session_state.bug_desc_input
-            if st.session_state.code_snippet_input.strip():
-                initial_prompt += f"\n\nCode snippet provided:\n{st.session_state.code_snippet_input.strip()}"
+            can_start, initial_prompt, notice = prompts.validate_session_start(
+                st.session_state.bug_desc_input,
+                st.session_state.code_snippet_input
+            )
+            if not can_start:
+                st.info(notice)
+                return
+            st.session_state.session_started = True
             st.session_state.messages.append({"role": "user", "content": initial_prompt})
             st.session_state.turn_count = 1
 
-        safe_desc = st.session_state.bug_desc_input or "Debugging logic in session"
-        safe_code = st.session_state.code_snippet_input or "# No code snippet provided"
+        safe_desc = (st.session_state.bug_desc_input or "").strip()
+        safe_code = (st.session_state.code_snippet_input or "").strip()
 
         # Check for user breakthrough or success without cause
         if user_followup:
@@ -811,8 +805,8 @@ def render_socratic_studio():
                 skeleton_placeholder.empty()
                 return
 
-        # Trigger Skeleton Loading Screen exclusively during active synthesis
-        skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Socratic Engine Syncing..."), unsafe_allow_html=True)
+        # Animate waveform exclusively during active generation (loading state)
+        waveform_placeholder.markdown(render_waveform_card(is_thinking=True), unsafe_allow_html=True)
 
         current_key = prompts.resolve_gemini_api_key()
         try:
@@ -845,8 +839,8 @@ def render_socratic_studio():
         if not duck_q or not duck_q.strip():
             duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
 
-        # Clear skeleton loading screen immediately when loaded
-        skeleton_placeholder.empty()
+        # Revert waveform to idle resting state after generation completes
+        waveform_placeholder.markdown(render_waveform_card(is_thinking=False), unsafe_allow_html=True)
         st.session_state.messages.append({"role": "assistant", "content": duck_q})
 
     # Prominent "Start Quacking with the Duck" Button
@@ -854,8 +848,9 @@ def render_socratic_studio():
         desc_val = st.session_state.bug_desc_input
         code_val = st.session_state.code_snippet_input
         if st.button("Start Quacking with the Duck", key="btn_start_quacking"):
-            if not desc_val.strip() and not code_val.strip():
-                st.warning("Please provide either a bug description or code snippet above to begin.")
+            can_start, _, notice = prompts.validate_session_start(desc_val, code_val)
+            if not can_start:
+                st.info(notice)
             else:
                 execute_socratic_turn()
                 st.rerun()
@@ -968,7 +963,7 @@ def render_socratic_studio():
 
     # Chat Input Box
     if not st.session_state.solved:
-        user_input = st.chat_input("Talk back to your Rubber Duck (dictate or type your thoughts)...")
+        user_input = st.chat_input("Talk back to your Rubber Duck (dictate with Wispr Flow or type here)...")
         if user_input and user_input.strip():
             clean_text = user_input.strip()
             execute_socratic_turn(user_followup=clean_text)
