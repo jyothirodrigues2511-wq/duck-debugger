@@ -861,48 +861,303 @@ Debugging Conversation:
     }
 
 
-def generate_practice_problem(
-    weak_spot: Optional[str],
-    language: Optional[str] = "Python",
-    api_key: Optional[str] = None
-) -> str:
+PRACTICE_BUILTIN_PROBLEMS: Dict[str, List[Dict[str, str]]] = {
+    "off-by-one": [
+        {
+            "statement": "A telemetry log buffer extracts the last N events for an alert monitor, but the oldest item in the window is always dropped.",
+            "starter_code": "def get_recent_window(events: list, window_size: int) -> list:\n    # When len(events) == window_size, this drops index 0\n    start_index = len(events) - window_size + 1\n    return events[start_index:]",
+            "expected_output": "get_recent_window(['a', 'b', 'c'], 3) returns ['a', 'b', 'c']",
+            "hint": "Trace start_index when len(events) equals window_size: 3 - 3 + 1 evaluates to index 1 instead of 0.",
+            "solution_code": "def get_recent_window(events: list, window_size: int) -> list:\n    start_index = max(0, len(events) - window_size)\n    return events[start_index:]",
+            "solution_explanation": "Subtracting window_size directly without adding 1 correctly indexes from the start when total items equal the window size."
+        },
+        {
+            "statement": "An API pagination calculator requests an empty extra page whenever total records is an exact multiple of the page size.",
+            "starter_code": "def calculate_page_count(total_items: int, page_size: int) -> int:\n    if total_items == 0:\n        return 0\n    return (total_items // page_size) + 1",
+            "expected_output": "calculate_page_count(40, 10) returns 4, not 5",
+            "hint": "Consider what happens when total_items % page_size == 0. Does floor division require adding 1?",
+            "solution_code": "def calculate_page_count(total_items: int, page_size: int) -> int:\n    if total_items == 0:\n        return 0\n    return (total_items + page_size - 1) // page_size",
+            "solution_explanation": "Using ceiling integer division (total + page_size - 1) // page_size avoids generating an empty trailing page."
+        },
+        {
+            "statement": "A batch processing loop iterates through records, but accidentally skips the final item in the collection.",
+            "starter_code": "def process_all_records(records: list) -> list:\n    results = []\n    for i in range(len(records) - 1):\n        results.append(records[i].upper())\n    return results",
+            "expected_output": "process_all_records(['first', 'last']) returns ['FIRST', 'LAST']",
+            "hint": "In Python, range(stop) already terminates at stop - 1. What happens when you subtract 1 from len(records)?",
+            "solution_code": "def process_all_records(records: list) -> list:\n    results = []\n    for i in range(len(records)):\n        results.append(records[i].upper())\n    return results",
+            "solution_explanation": "range(len(records)) iterates from 0 to len(records) - 1, properly including every element."
+        }
+    ],
+    "null/undefined": [
+        {
+            "statement": "A webhook handler reads a user avatar URL from profile metadata, but crashes with TypeError when optional profile fields are omitted.",
+            "starter_code": "def get_avatar(user_payload: dict) -> str:\n    # Crashes if 'profile' is None or missing\n    return user_payload.get('profile')['avatar_url']",
+            "expected_output": "get_avatar({'id': 42}) returns 'default.png' without throwing an exception",
+            "hint": "user_payload.get('profile') returns None when the key is absent. Subscripting None raises TypeError.",
+            "solution_code": "def get_avatar(user_payload: dict) -> str:\n    profile = user_payload.get('profile') or {}\n    return profile.get('avatar_url', 'default.png')",
+            "solution_explanation": "Guarding profile with an empty dictionary fallback prevents subscripting None."
+        },
+        {
+            "statement": "A cache retrieval helper reads client tokens, but raises AttributeError on cache misses.",
+            "starter_code": "def format_cache_token(cache: dict, client_id: str) -> str:\n    raw_token = cache.get(client_id)\n    return raw_token.strip().upper()",
+            "expected_output": "format_cache_token({}, 'user_123') returns '' instead of raising AttributeError",
+            "hint": "cache.get() returns None if client_id is not found. None does not possess a .strip() method.",
+            "solution_code": "def format_cache_token(cache: dict, client_id: str) -> str:\n    raw_token = cache.get(client_id)\n    return raw_token.strip().upper() if raw_token else ''",
+            "solution_explanation": "Verifying that raw_token is not None before invoking string methods prevents AttributeError."
+        }
+    ],
+    "type coercion": [
+        {
+            "statement": "A billing utility calculates the total price by adding a surcharge to the base cost, but raises TypeError because one parameter is a string.",
+            "starter_code": "def compute_invoice(base_cost: int, form_surcharge: str) -> int:\n    return base_cost + form_surcharge",
+            "expected_output": "compute_invoice(100, '25') returns 125",
+            "hint": "Input received from web forms is typed as string. In Python, int + str raises TypeError.",
+            "solution_code": "def compute_invoice(base_cost: int, form_surcharge: str) -> int:\n    return base_cost + int(form_surcharge)",
+            "solution_explanation": "Explicitly casting form_surcharge with int() ensures numeric addition rather than a type conflict."
+        },
+        {
+            "statement": "A feature flag checker interprets the string 'false' as active because non-empty strings evaluate to truthy.",
+            "starter_code": "def is_feature_enabled(flag_str: str) -> bool:\n    if flag_str:\n        return True\n    return False",
+            "expected_output": "is_feature_enabled('false') returns False",
+            "hint": "In Python, any non-empty string like 'false' evaluates to True in a boolean context.",
+            "solution_code": "def is_feature_enabled(flag_str: str) -> bool:\n    return str(flag_str).strip().lower() in ('true', '1', 'yes', 'on')",
+            "solution_explanation": "Explicitly validating against known truth tokens prevents 'false' from evaluating as truthy."
+        }
+    ],
+    "scope": [
+        {
+            "statement": "An event tracking counter tries to increment an outer state variable from inside a helper function, causing an UnboundLocalError.",
+            "starter_code": "total_events = 0\n\ndef record_event() -> int:\n    total_events += 1\n    return total_events",
+            "expected_output": "record_event() increments total_events and returns 1",
+            "hint": "Assigning to total_events inside record_event marks it as a local variable before it has been initialized.",
+            "solution_code": "total_events = 0\n\ndef record_event() -> int:\n    global total_events\n    total_events += 1\n    return total_events",
+            "solution_explanation": "Declaring global total_events informs Python that the assignment targets the module-level variable."
+        },
+        {
+            "statement": "A task generator builds a list of multiplier callbacks in a loop, but all generated callbacks use the final loop index value.",
+            "starter_code": "def make_multipliers():\n    multipliers = []\n    for i in range(3):\n        multipliers.append(lambda x: x * i)\n    return multipliers",
+            "expected_output": "[f(10) for f in make_multipliers()] produces [0, 10, 20], not [20, 20, 20]",
+            "hint": "Lambdas capture variable i by reference, not by value at creation time.",
+            "solution_code": "def make_multipliers():\n    multipliers = []\n    for i in range(3):\n        multipliers.append(lambda x, factor=i: x * factor)\n    return multipliers",
+            "solution_explanation": "Binding i as a default argument factor=i captures the current loop value at function creation."
+        }
+    ],
+    "syntax": [
+        {
+            "statement": "A configuration loader fails to parse due to an unclosed bracket inside nested settings.",
+            "starter_code": "def load_config() -> dict:\n    cfg = {\n        'env': 'production',\n        'retries': 3,\n        'hosts': ['node-1', 'node-2'\n    }\n    return cfg",
+            "expected_output": "load_config() returns a valid dictionary",
+            "hint": "Look closely at the brackets enclosing the 'hosts' list elements.",
+            "solution_code": "def load_config() -> dict:\n    cfg = {\n        'env': 'production',\n        'retries': 3,\n        'hosts': ['node-1', 'node-2']\n    }\n    return cfg",
+            "solution_explanation": "Closing the 'hosts' list with a closing bracket resolves the SyntaxError."
+        },
+        {
+            "statement": "A status validator accidentally uses an assignment statement inside a conditional check instead of an equality comparison.",
+            "starter_code": "def check_ready(status: str) -> bool:\n    if status = 'ready':\n        return True\n    return False",
+            "expected_output": "check_ready('ready') returns True and check_ready('pending') returns False",
+            "hint": "Single '=' is an assignment operator; equality checks require '=='.",
+            "solution_code": "def check_ready(status: str) -> bool:\n    if status == 'ready':\n        return True\n    return False",
+            "solution_explanation": "Using == compares the status value rather than attempting an assignment inside the conditional."
+        }
+    ],
+    "logic": [
+        {
+            "statement": "A permission checker denies access to valid administrators due to an inverted boolean expression.",
+            "starter_code": "def can_access_admin_panel(is_admin: bool, is_suspended: bool) -> bool:\n    return not is_admin and not is_suspended",
+            "expected_output": "can_access_admin_panel(True, False) returns True",
+            "hint": "Should an admin have access if is_admin is True?",
+            "solution_code": "def can_access_admin_panel(is_admin: bool, is_suspended: bool) -> bool:\n    return is_admin and not is_suspended",
+            "solution_explanation": "An administrator is permitted access if they are an admin AND their account is not suspended."
+        }
+    ]
+}
+
+
+class PracticeProblemResult(str):
     """
-    Generates a targeted mini practice problem based on the user's top weak spot.
-    Handles None or 'None yet' gracefully.
+    Hybrid string and dictionary representation of a synthesized practice problem.
+    Provides backwards compatibility for legacy assertions expecting `str` and `Rubber Duck` text,
+    while supporting dictionary key lookups for structured UI elements (statement, starter_code, etc.).
     """
-    clean_weak = (weak_spot or "").strip()
-    if not clean_weak or clean_weak.lower() in ("none yet", "none", "unknown"):
-        clean_weak = "Off-by-one"
+    def __new__(cls, content_str: str, data_dict: Dict[str, Any]):
+        obj = super().__new__(cls, content_str)
+        obj._data = dict(data_dict)
+        return obj
 
-    safe_lang = (language or "Python").strip()
-    client = get_gemini_client(api_key)
-    prompt = PRACTICE_PROBLEM_PROMPT.format(weak_spot=clean_weak, language=safe_lang)
+    def __getitem__(self, item: Any) -> Any:
+        if isinstance(item, str):
+            return self._data[item]
+        return super().__getitem__(item)
 
-    if client:
-        raw_text = None
-        for model in CANDIDATE_GEMINI_MODELS:
-            raw_text = _call_gemini_with_retry(
-                client=client,
-                model_name=model,
-                contents=prompt,
-                config={"temperature": 0.5, "max_output_tokens": 400}
-            )
-            if raw_text:
-                return raw_text
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._data.get(key, default)
 
-    # Curated fallback practice problem
-    return f"""### Rubber Duck Quick Challenge: {clean_weak}
+    def items(self):
+        return self._data.items()
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def __contains__(self, key: Any) -> bool:
+        if isinstance(key, str) and key in self._data:
+            return True
+        return super().__contains__(key)
+
+
+def _make_practice_result(data: Dict[str, Any], clean_weak: str, safe_lang: str) -> PracticeProblemResult:
+    formatted_md = f"""### Rubber Duck Quick Challenge: {clean_weak}
 
 **Scenario:**
-You are writing a function to grab the last `n` items from an activity log, but your QA tester says the oldest item in the window keeps disappearing!
+{data.get("statement", "")}
 
 ```{safe_lang.lower()}
-def get_recent_window(events, window_size):
-    # What happens when len(events) == window_size?
-    start_index = len(events) - window_size + 1
-    return events[start_index:]
+{data.get("starter_code", "")}
 ```
 
-**Socratic Question:**
-Quack! If `events` has 5 items and `window_size` is 5, what is `start_index`, and does the slice include the very first item?
+**Expected Output:**
+{data.get("expected_output", "")}
+
+**Hint:**
+{data.get("hint", "")}
 """
+    return PracticeProblemResult(formatted_md, data)
+
+
+def _resolve_practice_category(weak_spot: Optional[str]) -> str:
+    """Normalizes a weak spot string into one of the known category keys."""
+    if not weak_spot:
+        return "off-by-one"
+    low = weak_spot.lower().strip()
+    if any(k in low for k in ("off-by-one", "bound", "fencepost", "index", "slice", "range")):
+        return "off-by-one"
+    if any(k in low for k in ("null", "undefined", "none")):
+        return "null/undefined"
+    if any(k in low for k in ("type", "coercion", "cast")):
+        return "type coercion"
+    if any(k in low for k in ("scope", "unbound", "local", "closure", "nameerror")):
+        return "scope"
+    if any(k in low for k in ("syntax", "bracket", "parenthes", "colon")):
+        return "syntax"
+    return "logic"
+
+
+def generate_practice_problem(
+    weak_spot: Optional[str] = None,
+    language: Any = "Python",
+    api_key: Optional[str] = None,
+    user_bugs: Optional[List[Dict[str, Any]]] = None,
+    seed_offset: int = 0
+) -> PracticeProblemResult:
+    """
+    Generates a targeted practice problem based on the user's top weak spot
+    and historical logged bugs (root_cause and lesson).
+    Returns a PracticeProblemResult (subclass of str, with dict indexing).
+    """
+    # Accommodate legacy callers passing language as 2nd arg or user_bugs as 2nd arg
+    if isinstance(language, list):
+        user_bugs = language
+        language = "Python"
+    elif not isinstance(language, str):
+        language = "Python"
+
+    clean_weak = (weak_spot or "").strip()
+    if not clean_weak or clean_weak.lower() in ("none yet", "none", "unknown", "no data yet"):
+        clean_weak = "Off-by-one"
+
+    category = _resolve_practice_category(clean_weak)
+    safe_lang = (language or "Python").strip()
+
+    # Select built-in fallback challenge
+    cat_problems = PRACTICE_BUILTIN_PROBLEMS.get(category) or PRACTICE_BUILTIN_PROBLEMS["logic"]
+    fallback_selected = cat_problems[seed_offset % len(cat_problems)]
+    fallback_res = {
+        "statement": fallback_selected["statement"],
+        "starter_code": fallback_selected["starter_code"],
+        "expected_output": fallback_selected["expected_output"],
+        "hint": fallback_selected["hint"],
+        "solution_code": fallback_selected["solution_code"],
+        "solution_explanation": fallback_selected["solution_explanation"],
+        "language": safe_lang,
+        "category": category,
+        "notice": "AI engine offline or unavailable. Using built-in curated practice problem."
+    }
+
+    client = get_gemini_client(api_key)
+    if not client:
+        return _make_practice_result(fallback_res, clean_weak, safe_lang)
+
+    # Build context from user's historical logged bugs
+    history_bullets = []
+    if user_bugs and isinstance(user_bugs, list):
+        matching_bugs = [b for b in user_bugs if isinstance(b, dict) and category in _resolve_practice_category(b.get("bug_type", ""))]
+        selected_bugs = matching_bugs[:3] if matching_bugs else [b for b in user_bugs if isinstance(b, dict)][:2]
+        for b in selected_bugs:
+            rc = (b.get("root_cause") or "").strip()
+            ls = (b.get("lesson") or "").strip()
+            if rc or ls:
+                history_bullets.append(f"- Root cause: '{rc}' | Lesson: '{ls}'")
+
+    history_section = ""
+    if history_bullets:
+        history_section = "\n[USER HISTORICAL TELEMETRY (REAL MISTAKES)]\n" + "\n".join(history_bullets) + "\nTailor the challenge to target these specific misconceptions.\n"
+
+    system_instruction = f"""You are a master software engineering mentor and Rubber Duck coach.
+The user has a recurring weakness with: "{clean_weak}" in {safe_lang}.
+{history_section}
+Synthesize a short, focused 3-minute practice coding puzzle (variation #{seed_offset + 1}).
+Output MUST be valid JSON adhering strictly to this schema:
+{{
+  "statement": "<1-2 sentence problem description explaining what the code is intended to do>",
+  "starter_code": "<5-10 lines of realistic {safe_lang} code with a subtle bug>",
+  "expected_output": "<exact expected output or return value for a specific test case>",
+  "hint": "<one subtle guided hint without giving away the fix>",
+  "solution_code": "<the corrected working {safe_lang} code snippet>",
+  "solution_explanation": "<1-2 sentences explaining how the fix resolves the root cause>"
+}}
+
+CRITICAL RULES:
+1. Output ONLY valid JSON. No conversational preamble, no markdown formatting outside JSON.
+2. The starter code must contain a real bug directly related to {clean_weak}.
+3. Never put the solution or fix in the starter code, statement, or hint!
+"""
+
+    prompt = f"Generate practice challenge variation #{seed_offset + 1} for weak spot: {clean_weak} in {safe_lang}."
+
+    for model in CANDIDATE_GEMINI_MODELS:
+        raw_text = _call_gemini_with_retry(
+            client=client,
+            model_name=model,
+            contents=prompt,
+            config={
+                "system_instruction": system_instruction,
+                "temperature": 0.4,
+                "max_output_tokens": 600,
+                "response_mime_type": "application/json"
+            }
+        )
+        if raw_text:
+            try:
+                cleaned = re.sub(r"^```(?:json)?\s*", "", raw_text.strip(), flags=re.IGNORECASE)
+                cleaned = re.sub(r"\s*```$", "", cleaned.strip())
+                parsed = json.loads(cleaned)
+                if isinstance(parsed, dict) and "statement" in parsed and "starter_code" in parsed and "solution_code" in parsed:
+                    res_data = {
+                        "statement": str(parsed.get("statement", "")).strip(),
+                        "starter_code": str(parsed.get("starter_code", "")).strip(),
+                        "expected_output": str(parsed.get("expected_output", "")).strip(),
+                        "hint": str(parsed.get("hint", "")).strip(),
+                        "solution_code": str(parsed.get("solution_code", "")).strip(),
+                        "solution_explanation": str(parsed.get("solution_explanation", "")).strip(),
+                        "language": safe_lang,
+                        "category": category,
+                        "notice": None
+                    }
+                    return _make_practice_result(res_data, clean_weak, safe_lang)
+            except Exception as e:
+                logger.warning("Failed to parse Gemini practice problem JSON (model=%s): %s", model, e)
+
+    return _make_practice_result(fallback_res, clean_weak, safe_lang)
+

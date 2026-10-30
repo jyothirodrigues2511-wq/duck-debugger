@@ -164,10 +164,18 @@ def _init_db_core(seed_samples: bool = True) -> None:
                 lesson TEXT NOT NULL,
                 language TEXT NOT NULL,
                 description TEXT DEFAULT '',
-                code_snippet TEXT DEFAULT ''
+                code_snippet TEXT DEFAULT '',
+                turn_count INTEGER DEFAULT 1,
+                duration_seconds REAL DEFAULT 0.0
             )
             """
         )
+        cursor.execute("PRAGMA table_info(bugs);")
+        existing_cols = {row["name"] for row in cursor.fetchall()}
+        if "turn_count" not in existing_cols:
+            cursor.execute("ALTER TABLE bugs ADD COLUMN turn_count INTEGER DEFAULT 1;")
+        if "duration_seconds" not in existing_cols:
+            cursor.execute("ALTER TABLE bugs ADD COLUMN duration_seconds REAL DEFAULT 0.0;")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_bugs_timestamp ON bugs(timestamp);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_bugs_bug_type ON bugs(bug_type);")
         conn.commit()
@@ -196,7 +204,9 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "I need to remember Python range() stop is exclusive, but <= with len() causes array overflow.",
             "Python",
             "Um like so I was looping through this list of user tokens and it crashed at the very end saying index out of range even though all items were valid",
-            "for i in range(len(tokens) + 1):\n    process(tokens[i])"
+            "for i in range(len(tokens) + 1):\n    process(tokens[i])",
+            3,
+            195.0
         ),
         (
             (now - timedelta(days=2, hours=5)).strftime("%Y-%m-%d %H:%M:%S"),
@@ -206,7 +216,9 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "String slicing `[start:end]` excludes `end`, so add +1 when the boundary index is inclusive.",
             "Python",
             "So basically like I needed to slice from index 0 up to the colon character but the colon was always chopped off",
-            "colon_idx = text.find(':')\nreturn text[0:colon_idx]"
+            "colon_idx = text.find(':')\nreturn text[0:colon_idx]",
+            2,
+            140.0
         ),
         (
             (now - timedelta(days=3, hours=1)).strftime("%Y-%m-%d %H:%M:%S"),
@@ -216,7 +228,9 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "Always use `ceil(total / page_size)` or check remainder before doing `total // page_size + 1`.",
             "JavaScript",
             "Yeah uh the pager kept requesting page 5 when there are only 4 pages and the server returned 404",
-            "const pages = Math.floor(total / pageSize) + 1;"
+            "const pages = Math.floor(total / pageSize) + 1;",
+            4,
+            260.0
         ),
         (
             (now - timedelta(days=4, hours=2)).strftime("%Y-%m-%d %H:%M:%S"),
@@ -226,7 +240,9 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "Set binary search `high = len(arr) - 1` when using `while low <= high`.",
             "Python",
             "Like binary search was randomly dying with index out of bounds whenever searching for missing keys",
-            "low, high = 0, len(nums)\nwhile low <= high:\n    mid = (low + high) // 2"
+            "low, high = 0, len(nums)\nwhile low <= high:\n    mid = (low + high) // 2",
+            3,
+            210.0
         ),
         (
             (now - timedelta(days=5, hours=6)).strftime("%Y-%m-%d %H:%M:%S"),
@@ -236,7 +252,9 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "Always use optional chaining or guard clauses before nested property access.",
             "JavaScript",
             "It threw cannot read properties of undefined reading profile right when the app boots up",
-            "const avatar = response.data.user.profile.avatarUrl;"
+            "const avatar = response.data.user.profile.avatarUrl;",
+            2,
+            120.0
         ),
         (
             (now - timedelta(days=6, hours=4)).strftime("%Y-%m-%d %H:%M:%S"),
@@ -246,14 +264,16 @@ def seed_initial_data(conn: sqlite3.Connection) -> None:
             "Explicitly cast numeric form inputs with `int()` or `Number()` before mathematical operations.",
             "Python",
             "Like the user typed 5 and instead of getting 15 points it gave 105 points in the database",
-            "points = user_record['points'] + request_data['bonus']"
+            "points = user_record['points'] + request_data['bonus']",
+            2,
+            135.0
         )
     ]
 
     cursor.executemany(
         """
-        INSERT INTO bugs (timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO bugs (timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet, turn_count, duration_seconds)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         sample_bugs
     )
@@ -267,7 +287,9 @@ def save_bug(
     lesson: str,
     language: str,
     description: str = "",
-    code_snippet: str = ""
+    code_snippet: str = "",
+    turn_count: int = 1,
+    duration_seconds: float = 0.0
 ) -> int:
     """
     Saves a new solved bug entry with parameter normalization and returns its generated ID.
@@ -280,14 +302,16 @@ def save_bug(
     clean_language = str(language or "").strip() or "General"
     clean_description = str(description or "").strip()
     clean_code_snippet = str(code_snippet or "").strip()
+    safe_turn_count = max(1, int(turn_count or 1))
+    safe_duration = max(0.0, float(duration_seconds or 0.0))
 
     with get_connection() as conn:
         cursor = conn.cursor()
         now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cursor.execute(
             """
-            INSERT INTO bugs (timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO bugs (timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet, turn_count, duration_seconds)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 now_str,
@@ -297,7 +321,9 @@ def save_bug(
                 clean_lesson,
                 clean_language,
                 clean_description,
-                clean_code_snippet
+                clean_code_snippet,
+                safe_turn_count,
+                safe_duration
             )
         )
         conn.commit()
@@ -359,14 +385,89 @@ def get_all_bugs(query: Optional[str] = None) -> List[Dict[str, Any]]:
         return []
 
 
-def get_bug_stats() -> Dict[str, Any]:
+def compute_bug_streak(target_date: Optional[datetime.date] = None) -> int:
     """
-    Computes bug type frequencies, weekly counts, and identifies the top weak spot.
-    Returns safe default structures if database is inaccessible or empty.
+    Computes consecutive days with at least one solved bug.
+    Counts backwards starting from target_date (defaults to today).
+    If no bugs exist today or yesterday, active streak is 0.
     """
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT DISTINCT SUBSTR(timestamp, 1, 10) as day_str
+                FROM bugs
+                WHERE timestamp IS NOT NULL AND timestamp != ''
+                ORDER BY day_str DESC
+                """
+            )
+            rows = cursor.fetchall()
+            if not rows:
+                return 0
+
+            days = set()
+            for r in rows:
+                try:
+                    d = datetime.strptime(r["day_str"][:10], "%Y-%m-%d").date()
+                    days.add(d)
+                except Exception:
+                    pass
+
+            if not days:
+                return 0
+
+            ref_date = target_date or datetime.now().date()
+            if ref_date in days:
+                curr = ref_date
+            elif (ref_date - timedelta(days=1)) in days:
+                curr = ref_date - timedelta(days=1)
+            else:
+                return 0
+
+            streak = 0
+            while curr in days:
+                streak += 1
+                curr -= timedelta(days=1)
+
+            return streak
+    except Exception as e:
+        logger.error("Error computing bug streak: %s", e)
+        return 0
+
+
+def get_bug_stats() -> Dict[str, Any]:
+    """
+    Computes bug type frequencies, weekly counts, streak, average turnaround,
+    and scope breakdown directly from SQLite.
+    Returns safe default structures if database is inaccessible or empty.
+    Never invents statistics.
+    """
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT COUNT(*) as total FROM bugs")
+            total_bugs = cursor.fetchone()["total"]
+
+            if total_bugs == 0:
+                return {
+                    "total_bugs": 0,
+                    "type_counts": {},
+                    "top_weak_spot": "No data yet",
+                    "top_weak_spot_count": 0,
+                    "top_weak_spot_pct": 0,
+                    "streak": 0,
+                    "avg_turns": 0.0,
+                    "avg_duration_seconds": 0.0,
+                    "logic_count": 0,
+                    "runtime_count": 0,
+                    "state_count": 0,
+                    "logic_pct": 0,
+                    "runtime_pct": 0,
+                    "state_pct": 0,
+                    "has_data": False
+                }
 
             # Distribution across all bugs
             cursor.execute(
@@ -402,19 +503,66 @@ def get_bug_stats() -> Dict[str, Any]:
                 top_weak_spot = list(type_counts.keys())[0]
                 top_weak_spot_count = list(type_counts.values())[0]
 
-            total_bugs = sum(type_counts.values())
+            top_weak_spot_pct = int(round((top_weak_spot_count / total_bugs * 100))) if total_bugs > 0 else 0
+
+            # Averages from SQLite
+            cursor.execute("SELECT AVG(turn_count) as avg_t, AVG(duration_seconds) as avg_d FROM bugs")
+            avg_row = cursor.fetchone()
+            avg_turns = float(avg_row["avg_t"]) if avg_row and avg_row["avg_t"] is not None else 1.0
+            avg_duration_seconds = float(avg_row["avg_d"]) if avg_row and avg_row["avg_d"] is not None else 0.0
+
+            # Scope counts
+            cursor.execute(
+                """
+                SELECT scope, COUNT(*) as sc_count
+                FROM bugs
+                GROUP BY scope
+                """
+            )
+            scope_rows = cursor.fetchall()
+            logic_count = sum(r["sc_count"] for r in scope_rows if any(k in (r["scope"] or "").lower() for k in ("logic", "index", "syntax")))
+            runtime_count = sum(r["sc_count"] for r in scope_rows if any(k in (r["scope"] or "").lower() for k in ("runtime", "null", "type")))
+            state_count = max(0, total_bugs - (logic_count + runtime_count))
+
+            logic_pct = int(round((logic_count / total_bugs * 100)))
+            runtime_pct = int(round((runtime_count / total_bugs * 100)))
+            state_pct = max(0, 100 - (logic_pct + runtime_pct))
+
+            streak = compute_bug_streak()
 
             return {
                 "total_bugs": total_bugs,
                 "type_counts": type_counts,
-                "top_weak_spot": top_weak_spot or "None yet",
-                "top_weak_spot_count": top_weak_spot_count
+                "top_weak_spot": top_weak_spot or "No data yet",
+                "top_weak_spot_count": top_weak_spot_count,
+                "top_weak_spot_pct": top_weak_spot_pct,
+                "streak": streak,
+                "avg_turns": round(avg_turns, 1),
+                "avg_duration_seconds": round(avg_duration_seconds, 1),
+                "logic_count": logic_count,
+                "runtime_count": runtime_count,
+                "state_count": state_count,
+                "logic_pct": logic_pct,
+                "runtime_pct": runtime_pct,
+                "state_pct": state_pct,
+                "has_data": True
             }
     except sqlite3.Error as e:
         logger.error("Error retrieving bug stats: %s", e)
         return {
             "total_bugs": 0,
             "type_counts": {},
-            "top_weak_spot": "None yet",
-            "top_weak_spot_count": 0
+            "top_weak_spot": "No data yet",
+            "top_weak_spot_count": 0,
+            "top_weak_spot_pct": 0,
+            "streak": 0,
+            "avg_turns": 0.0,
+            "avg_duration_seconds": 0.0,
+            "logic_count": 0,
+            "runtime_count": 0,
+            "state_count": 0,
+            "logic_pct": 0,
+            "runtime_pct": 0,
+            "state_pct": 0,
+            "has_data": False
         }

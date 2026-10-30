@@ -624,6 +624,104 @@ class TestScope1To10Exhaustive(unittest.TestCase):
         self.assertNotIn("feel free", cleaned.lower())
         self.assertEqual(cleaned.count("?"), 1)
 
+    def test_practice_problem_returns_non_empty_content_for_each_bug_type(self):
+        """Verifies practice problem returns valid non-empty fields for each major category."""
+        categories = ["Off-by-one", "Null/Undefined Reference", "Type Coercion", "Scope", "Syntax Error"]
+        for cat in categories:
+            res = prompts.generate_practice_problem(cat, api_key="")
+            self.assertTrue(hasattr(res, "get"))
+            self.assertTrue(res.get("statement"), f"Missing statement for {cat}")
+            self.assertTrue(res.get("starter_code"), f"Missing starter_code for {cat}")
+            self.assertTrue(res.get("expected_output"), f"Missing expected_output for {cat}")
+            self.assertTrue(res.get("hint"), f"Missing hint for {cat}")
+            self.assertTrue(res.get("solution_code"), f"Missing solution_code for {cat}")
+            self.assertTrue(res.get("solution_explanation"), f"Missing solution_explanation for {cat}")
+            self.assertNotEqual(res["starter_code"], res["solution_code"])
+
+    def test_practice_problem_offline_fallback_notice(self):
+        """Verifies missing API key yields built-in problem with visible offline notice."""
+        res = prompts.generate_practice_problem("Off-by-one", api_key="")
+        self.assertIsNotNone(res.get("notice"))
+        self.assertIn("offline", res["notice"].lower())
+
+    def test_practice_problem_different_each_time_with_another_problem(self):
+        """Verifies seed offset rotates through different challenges for the same category."""
+        p1 = prompts.generate_practice_problem("Off-by-one", seed_offset=0, api_key="")
+        p2 = prompts.generate_practice_problem("Off-by-one", seed_offset=1, api_key="")
+        self.assertNotEqual(p1["statement"], p2["statement"])
+
+    def test_stats_on_empty_database(self):
+        """Verifies querying an empty database shows 'No data yet' and does not crash."""
+        import tempfile
+        orig_db = db.DB_PATH
+        temp_db = os.path.join(tempfile.gettempdir(), f"empty_test_{int(time.time()*1000)}.db")
+        try:
+            db.DB_PATH = temp_db
+            db._init_db_core(seed_samples=False)
+            stats = db.get_bug_stats()
+            self.assertEqual(stats["total_bugs"], 0)
+            self.assertEqual(stats["top_weak_spot"], "No data yet")
+            self.assertEqual(stats["streak"], 0)
+            self.assertFalse(stats["has_data"])
+            self.assertEqual(stats["logic_pct"], 0)
+        finally:
+            db.DB_PATH = orig_db
+            if os.path.exists(temp_db):
+                try:
+                    os.remove(temp_db)
+                except Exception:
+                    pass
+
+    def test_adding_bug_updates_streak_total_and_averages_correctly(self):
+        """Verifies inserting bugs correctly recalculates streak, total, and averages."""
+        import tempfile
+        orig_db = db.DB_PATH
+        temp_db = os.path.join(tempfile.gettempdir(), f"streak_test_{int(time.time()*1000)}.db")
+        try:
+            db.DB_PATH = temp_db
+            db._init_db_core(seed_samples=False)
+
+            stats0 = db.get_bug_stats()
+            self.assertEqual(stats0["total_bugs"], 0)
+            self.assertEqual(stats0["streak"], 0)
+
+            db.save_bug(
+                bug_type="Off-by-one",
+                scope="logic",
+                root_cause="Iterated <= len(items)",
+                lesson="range is exclusive",
+                language="Python",
+                turn_count=3,
+                duration_seconds=180.0
+            )
+            stats1 = db.get_bug_stats()
+            self.assertEqual(stats1["total_bugs"], 1)
+            self.assertEqual(stats1["streak"], 1)
+            self.assertEqual(stats1["avg_turns"], 3.0)
+            self.assertEqual(stats1["avg_duration_seconds"], 180.0)
+
+            db.save_bug(
+                bug_type="Off-by-one",
+                scope="logic",
+                root_cause="Slice excluded end",
+                lesson="add 1 for inclusive end",
+                language="Python",
+                turn_count=5,
+                duration_seconds=300.0
+            )
+            stats2 = db.get_bug_stats()
+            self.assertEqual(stats2["total_bugs"], 2)
+            self.assertEqual(stats2["streak"], 1)
+            self.assertEqual(stats2["avg_turns"], 4.0)
+            self.assertEqual(stats2["avg_duration_seconds"], 240.0)
+        finally:
+            db.DB_PATH = orig_db
+            if os.path.exists(temp_db):
+                try:
+                    os.remove(temp_db)
+                except Exception:
+                    pass
+
 
 if __name__ == "__main__":
     unittest.main()

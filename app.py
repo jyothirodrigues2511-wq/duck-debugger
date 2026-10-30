@@ -278,6 +278,17 @@ drawer_analytics_style = (
     else "background:#171e37; color:#d0c2d5;"
 )
 
+# Real telemetry metrics for navigation header
+header_stats = db.get_bug_stats()
+header_total = header_stats.get("total_bugs", 0)
+header_streak = header_stats.get("streak", 0)
+if header_total == 0:
+    streak_badge_text = "No data yet"
+elif header_streak > 0:
+    streak_badge_text = f"{header_streak} Day Streak"
+else:
+    streak_badge_text = "0 Day Streak"
+
 # --- Top Navigation Bar & Pure-CSS Sliding Drawer ---
 st.markdown(
     f"""
@@ -304,7 +315,7 @@ st.markdown(
       <!-- Telemetry Status Pills -->
       <div style="display:flex; align-items:center; gap:10px;">
         <div class="hover-pill" style="background:#212942; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#e0b6ff;">
-          14 Bug Streak
+          {streak_badge_text}
         </div>
         <div class="hover-pill" style="background:#131a33; border:1px solid #2c344d; padding:4px 12px; border-radius:9999px; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5; display:flex; align-items:center; gap:6px;">
           <span style="display:inline-block; width:6px; height:6px; border-radius:9999px; background:#9d4edd; box-shadow:0 0 8px #9d4edd;"></span>
@@ -550,6 +561,8 @@ def render_socratic_studio():
         st.session_state.code_snippet_input = ""
     if "selected_language" not in st.session_state:
         st.session_state.selected_language = "Python"
+    if "session_start_time" not in st.session_state:
+        st.session_state.session_start_time = time.time()
     active_key = prompts.resolve_gemini_api_key()
     if active_key:
         if st.session_state.get("ai_offline_error") in (
@@ -607,6 +620,10 @@ def render_socratic_studio():
             if last_user and len(last_user.strip()) > 3:
                 extracted["root_cause"] = last_user.strip()[:200]
 
+        turn_count_val = max(1, int(st.session_state.get("turn_count", 1)))
+        start_t = st.session_state.get("session_start_time")
+        duration_sec = max(0.0, round(time.time() - start_t, 1)) if start_t else 0.0
+
         bug_id = db.save_bug(
             bug_type=extracted.get("bug_type", "General"),
             scope=extracted.get("scope", "logic"),
@@ -614,7 +631,9 @@ def render_socratic_studio():
             lesson=extracted.get("lesson", ""),
             language=extracted.get("language", st.session_state.selected_language),
             description=st.session_state.bug_desc_input or "Debugging logic in session",
-            code_snippet=st.session_state.code_snippet_input or "# No code snippet provided"
+            code_snippet=st.session_state.code_snippet_input or "# No code snippet provided",
+            turn_count=turn_count_val,
+            duration_seconds=duration_sec
         )
         extracted["id"] = bug_id
         if fallback_used:
@@ -687,6 +706,7 @@ def render_socratic_studio():
                     st.session_state.solved_record = None
                     st.session_state.bug_desc_input = ""
                     st.session_state.code_snippet_input = ""
+                    st.session_state.session_start_time = time.time()
                     st.rerun()
 
     # Two-Column Main Layout
@@ -957,27 +977,179 @@ def render_socratic_studio():
 # ==============================================================================
 # VIEW 2: ANALYTICS & WEAK SPOTS
 # ==============================================================================
+@st.dialog("Synthesized Practice Challenge", width="large")
+def show_practice_dialog(weak_spot: str, language: str = "Python"):
+    """
+    Renders the practice challenge inside a top-level Streamlit dialog modal.
+    Fully scrollable, responsive, with loading spinner, problem statement,
+    starter code with bug, expected output, hint, and hidden solution expander.
+    """
+    if st.session_state.get("practice_data") is None:
+        with st.spinner("Synthesizing targeted practice challenge with Gemini..."):
+            user_bugs = db.get_all_bugs()[:10]
+            key = prompts.resolve_gemini_api_key()
+            nonce = st.session_state.get("practice_nonce", 0)
+            practice_data = prompts.generate_practice_problem(
+                weak_spot=weak_spot,
+                user_bugs=user_bugs,
+                language=language,
+                api_key=key,
+                seed_offset=nonce
+            )
+            st.session_state.practice_data = practice_data
+
+    data = st.session_state.get("practice_data")
+    if not data:
+        st.warning("Could not synthesize practice problem. Please try again.")
+        return
+
+    category_label = str(data.get("category", weak_spot or "Logic")).upper()
+    st.markdown(
+        f"""
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="background:#9d4edd; color:#ffffff; padding:3px 12px; border-radius:9999px; font-size:11px; font-weight:700; font-family:'JetBrains Mono';">
+            FOCUS VECTOR: {html.escape(category_label)}
+          </span>
+          <span style="color:#d0c2d5; font-size:12px; font-family:'JetBrains Mono';">Targeting your verified error patterns</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if data.get("notice"):
+        st.info(f"Notice: {data['notice']}")
+
+    st.markdown(f"**Scenario:**\n\n{data['statement']}")
+
+    st.markdown("**Starter Code (Contains Bug):**")
+    st.code(data["starter_code"], language=language.lower())
+
+    st.markdown(f"**Expected Output / Behavior:**\n\n`{data['expected_output']}`")
+
+    st.info(f"**Hint:** {data['hint']}")
+
+    with st.expander("Reveal solution", expanded=False):
+        st.markdown("**Corrected Code:**")
+        st.code(data["solution_code"], language=language.lower())
+        st.markdown(f"**Why this works:** {data['solution_explanation']}")
+
+    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+    col_close, col_another = st.columns([1, 1])
+    with col_close:
+        if st.button("Close", key="btn_close_practice_modal", use_container_width=True):
+            st.session_state.show_practice_modal = False
+            st.session_state.practice_data = None
+            st.rerun()
+    with col_another:
+        if st.button("Another problem", key="btn_another_practice_modal", type="primary", use_container_width=True):
+            st.session_state.practice_data = None
+            st.session_state.practice_nonce = st.session_state.get("practice_nonce", 0) + 1
+            st.rerun()
+
+
 def render_analytics():
+    if st.query_params.get("practice") in ("1", "true"):
+        st.session_state.show_practice_modal = True
+        st.session_state.practice_data = None
+        st.query_params.pop("practice", None)
+
     stats = db.get_bug_stats()
     all_bugs = db.get_all_bugs()
     total_bugs = stats.get("total_bugs", 0)
-    top_spot = stats.get("top_weak_spot") or "Off-by-one"
+    has_data = total_bugs > 0
+
+    top_spot = stats.get("top_weak_spot") if has_data else "No data yet"
     top_count = stats.get("top_weak_spot_count", 0)
     type_counts = stats.get("type_counts", {})
-    top_pct = int(round((top_count / total_bugs * 100))) if total_bugs > 0 else 0
+    top_pct = stats.get("top_weak_spot_pct", 0) if has_data else 0
 
-    scopes = {}
-    for b in all_bugs:
-        sc = (b.get("scope") or "logic").lower()
-        scopes[sc] = scopes.get(sc, 0) + 1
+    logic_pct = stats.get("logic_pct", 0) if has_data else 0
+    runtime_pct = stats.get("runtime_pct", 0) if has_data else 0
+    state_pct = stats.get("state_pct", 0) if has_data else 0
 
-    logic_count = sum(cnt for sc, cnt in scopes.items() if "logic" in sc or "index" in sc)
-    runtime_count = sum(cnt for sc, cnt in scopes.items() if "runtime" in sc or "null" in sc or "type" in sc)
-    state_count = max(0, total_bugs - (logic_count + runtime_count))
+    avg_turns = stats.get("avg_turns", 0.0)
+    avg_duration_sec = stats.get("avg_duration_seconds", 0.0)
 
-    logic_pct = int(round((logic_count / total_bugs * 100))) if total_bugs > 0 else 45
-    runtime_pct = int(round((runtime_count / total_bugs * 100))) if total_bugs > 0 else 35
-    state_pct = max(0, 100 - (logic_pct + runtime_pct))
+    def _get_cognitive_trap(spot: str) -> str:
+        if not has_data or not spot or spot.lower() in ("no data yet", "none yet"):
+            return "No data yet"
+        low = spot.lower()
+        if any(k in low for k in ("off-by-one", "bound", "fencepost", "index", "slice", "range")):
+            return "Inclusive vs Exclusive bounds / Range fencepost"
+        if any(k in low for k in ("null", "undefined", "none")):
+            return "Unchecked dereference on missing properties / None"
+        if any(k in low for k in ("type", "coercion", "cast")):
+            return "Implicit string vs numeric conversions"
+        if any(k in low for k in ("scope", "unbound", "local", "closure", "nameerror")):
+            return "Variable shadowing & closure state retention"
+        if any(k in low for k in ("syntax", "bracket", "parenthes", "colon")):
+            return "Container delimiters & operator assignments"
+        return "Logic edge conditions & branch evaluation"
+
+    cognitive_trap_str = _get_cognitive_trap(top_spot)
+
+    if not has_data:
+        recovery_cost_str = "No data yet"
+    elif avg_duration_sec >= 5.0:
+        recovery_cost_str = f"{round(avg_duration_sec / 60.0, 1)} min avg turnaround"
+    else:
+        recovery_cost_str = f"{avg_turns:.1f} turns avg turnaround"
+
+    # Metric card values computed from SQLite
+    m1_val = str(total_bugs) if has_data else "No data yet"
+    m1_sub = f"{total_bugs} verified SQLite records" if has_data else "No data yet"
+
+    if not has_data:
+        m2_label = "Avg Turnaround"
+        m2_val = "No data yet"
+        m2_unit = ""
+        m2_sub = "No data yet"
+    elif avg_duration_sec >= 5.0:
+        m2_label = "Avg Time to Aha!"
+        m2_val = f"{round(avg_duration_sec / 60.0, 1)}"
+        m2_unit = "mins"
+        m2_sub = f"Across {total_bugs} solved sessions"
+    else:
+        m2_label = "Avg Turns to Aha!"
+        m2_val = f"{avg_turns:.1f}"
+        m2_unit = "turns"
+        m2_sub = f"Avg Socratic questions to breakthrough"
+
+    m3_spot = html.escape(top_spot)
+    m3_sub = f"{top_pct}% of total incidents" if has_data else "No data yet"
+    m3_bar = f"{top_pct}%" if has_data else "0%"
+
+    m4_logic = f"{logic_pct}%" if has_data else "No data yet"
+    m4_runtime = f"{runtime_pct}%" if has_data else "No data yet"
+    m4_state = f"{state_pct}%" if has_data else "No data yet"
+
+    banner_title = f"Weekly Focus: {html.escape(top_spot)}"
+    banner_incidents = f"{top_count} INCIDENTS RECORDED" if has_data else "0 INCIDENTS RECORDED"
+    if has_data:
+        banner_desc = f'<strong class="text-primary font-semibold">{top_pct}% of your debugging sessions</strong> stemmed from {html.escape(top_spot)} patterns, boundary mutations, or loop conditions.'
+    else:
+        banner_desc = "No debugging telemetry recorded in SQLite yet. Complete a Socratic session to populate analytics."
+
+    # Top-Level Streamlit Action Header
+    col_an_header, col_an_actions = st.columns([2.5, 1.5], vertical_alignment="center")
+    with col_an_header:
+        st.markdown(
+            """
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="font-size:1.15rem; font-weight:700; color:#dbe1ff;">Debugging Intelligence &amp; Weak Spot Analytics</span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col_an_actions:
+        if st.button("Generate Practice Problem", key="btn_practice_top_level", type="primary", use_container_width=True, help="Synthesize targeted practice challenge based on your weak spots"):
+            st.session_state.show_practice_modal = True
+            st.session_state.practice_data = None
+            st.rerun()
+
+    # Trigger Dialog Modal if active
+    if st.session_state.get("show_practice_modal"):
+        show_practice_dialog(weak_spot=top_spot, language=st.session_state.get("selected_language", "Python"))
 
     # Bug Pattern Frequency Bars
     max_type_val = max(type_counts.values()) if type_counts else 1
@@ -1004,10 +1176,65 @@ def render_analytics():
         </div>
         """)
     bars_html = "\n".join(bar_chart_html_parts)
+    matrix_content_html = bars_html if (has_data and bars_html) else '<div class="py-6 text-center text-on-surface-variant font-mono text-xs">No pattern incidents recorded yet.</div>'
 
     # Bug Data Table Rows
     table_rows_parts = []
     bugs_lookup = {}
+    for idx, b in enumerate(all_bugs):
+        bug_id = b["id"]
+        code_id = f"DBG-{8900 + bug_id}"
+        safe_type = html.escape(b.get("bug_type") or "General")
+        safe_scope = html.escape(b.get("scope") or "Logic")
+        safe_root = html.escape(b.get("root_cause") or "Root cause not specified")
+        safe_lesson = html.escape(b.get("lesson") or "Lesson not specified")
+        safe_desc = html.escape(b.get("description") or "Voice transcript not recorded.")
+        safe_code = html.escape(b.get("code_snippet") or "# No code snippet recorded")
+        ts = b.get("timestamp") or "Recent"
+
+        bugs_lookup[code_id] = {
+            "id": code_id,
+            "type": b.get("bug_type") or "General",
+            "scope": b.get("scope") or "Logic",
+            "root": b.get("root_cause") or "Root cause not specified",
+            "lesson": b.get("lesson") or "Lesson not specified",
+            "desc": b.get("description") or "Voice transcript not recorded.",
+            "code": b.get("code_snippet") or "# No code snippet recorded",
+            "timestamp": ts
+        }
+
+        row_bg = "bg-surface-container-low" if idx % 2 == 0 else "bg-surface-container-lowest"
+        table_rows_parts.append(f"""
+        <tr class="bug-row {row_bg} hover:bg-surface-container hover:shadow-[0_0_12px_rgba(157,78,221,0.25)] transition-all duration-150 group cursor-pointer" data-id="{code_id}" data-type="{safe_type}" onclick="openDrawer('{code_id}')">
+          <td class="py-3.5 px-4 font-mono font-semibold text-primary">#{code_id}</td>
+          <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">{ts}</td>
+          <td class="py-3.5 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
+              {safe_type}
+            </span>
+          </td>
+          <td class="py-3.5 px-4">
+            <span class="font-code-md text-code-md text-on-surface-variant">{safe_scope}</span>
+          </td>
+          <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
+            {safe_root}
+          </td>
+          <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
+            {safe_lesson}
+          </td>
+          <td class="py-3.5 px-4 text-right whitespace-nowrap">
+            <div class="inline-flex items-center gap-1">
+              <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_12px_rgba(157,78,221,0.3)]" type="button">
+                Inspect Session
+              </button>
+            </div>
+          </td>
+        </tr>
+        """)
+
+    rows_html = "\n".join(table_rows_parts)
+    table_content_html = rows_html if (has_data and rows_html) else '<tr><td colspan="7" class="py-6 px-4 text-center text-on-surface-variant font-mono text-xs">No debugging sessions recorded yet. Complete a session in Socratic Studio to log telemetry.</td></tr>'
+    bugs_json_str = json.dumps(bugs_lookup).replace("<", "\\u003c")
     for idx, b in enumerate(all_bugs):
         bug_id = b["id"]
         code_id = f"DBG-{8900 + bug_id}"
@@ -1197,31 +1424,31 @@ def render_analytics():
                   <span class="material-symbols-outlined text-[14px]">crisis_alert</span>
                   Critical Focus Vector
                 </span>
-                <span class="text-xs text-primary font-mono tracking-wider">{top_count} INCIDENTS RECORDED</span>
+                <span class="text-xs text-primary font-mono tracking-wider">{banner_incidents}</span>
               </div>
               <h2 class="text-2xl font-bold text-on-surface">
-                Weekly Focus: {html.escape(top_spot)}
+                {banner_title}
               </h2>
               <p class="text-base text-on-surface-variant leading-relaxed">
-                <strong class="text-primary font-semibold">{top_pct}% of your debugging sessions</strong> stemmed from {html.escape(top_spot)} patterns, boundary mutations, or loop conditions.
+                {banner_desc}
               </p>
               <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mt-1 font-mono text-xs text-on-surface-variant">
                 <div class="flex items-center gap-1.5">
                   <span class="material-symbols-outlined text-primary text-[16px]">psychology</span>
-                  <span>Cognitive Trap: <span class="text-on-surface font-semibold">Inclusive vs Exclusive bounds</span></span>
+                  <span>Cognitive Trap: <span class="text-on-surface font-semibold">{cognitive_trap_str}</span></span>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <span class="material-symbols-outlined text-tertiary text-[16px]">timer</span>
-                  <span>Recovery Cost: <span class="text-on-surface font-semibold">4.2 min avg turnaround</span></span>
+                  <span>Recovery Cost: <span class="text-on-surface font-semibold">{recovery_cost_str}</span></span>
                 </div>
               </div>
             </div>
 
             <div class="flex flex-col sm:flex-row lg:flex-col items-stretch gap-3 shrink-0 min-w-[240px]">
-              <button class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_24px_rgba(157,78,221,0.4)] text-sm font-semibold cursor-pointer active:scale-95" onclick="openPracticeModal()" type="button">
+              <a class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_24px_rgba(157,78,221,0.4)] text-sm font-semibold cursor-pointer active:scale-95" href="/?view=analytics&practice=1" style="text-decoration:none;" target="_top">
                 <span class="material-symbols-outlined text-[18px]">extension</span>
                 <span>Generate Practice Problem</span>
-              </button>
+              </a>
               <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] cursor-pointer active:scale-95" data-spot="{html.escape(top_spot)}" onclick="filterByWeakSpot(this.getAttribute('data-spot'))" type="button">
                 <span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
                 <span>Review Socratic Transcripts ({top_count})</span>
@@ -1240,13 +1467,13 @@ def render_analytics():
                 <span class="material-symbols-outlined text-primary text-[20px]">task_alt</span>
               </div>
               <div class="my-3 flex items-baseline gap-2">
-                <span class="text-4xl font-bold text-on-surface">{total_bugs}</span>
-                <span class="text-xs text-on-surface-variant font-mono">bugs</span>
+                <span class="text-4xl font-bold text-on-surface">{m1_val}</span>
+                <span class="text-xs text-on-surface-variant font-mono">{m1_unit}</span>
               </div>
               <div class="flex items-center justify-between pt-1">
-                <span class="inline-flex items-center gap-1 text-xs text-emerald-400">
-                  <span class="material-symbols-outlined text-[14px]">trending_up</span>
-                  +100% telemetry synced
+                <span class="inline-flex items-center gap-1 text-xs text-emerald-400 font-mono">
+                  <span class="material-symbols-outlined text-[14px]">task_alt</span>
+                  {m1_sub}
                 </span>
                 <svg class="w-16 h-5 overflow-visible" fill="none" viewBox="0 0 80 24">
                   <path d="M2 18 L18 16 L34 20 L50 9 L66 12 L78 3" stroke="#9d4edd" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
@@ -1258,17 +1485,17 @@ def render_analytics():
             <!-- Metric 2: Avg Time to Aha! -->
             <div class="p-6 rounded-2xl bg-surface-container-low border border-surface-container flex flex-col justify-between shadow-sm transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] hover:border-primary/50 cursor-default">
               <div class="flex items-center justify-between">
-                <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Avg Time to Aha!</span>
+                <span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">{m2_label}</span>
                 <span class="material-symbols-outlined text-primary text-[20px]">lightbulb</span>
               </div>
               <div class="my-3 flex items-baseline gap-2">
-                <span class="text-4xl font-bold text-on-surface">4.2</span>
-                <span class="text-xs text-on-surface-variant font-mono">mins</span>
+                <span class="text-4xl font-bold text-on-surface">{m2_val}</span>
+                <span class="text-xs text-on-surface-variant font-mono">{m2_unit}</span>
               </div>
               <div class="flex items-center justify-between pt-1">
                 <span class="inline-flex items-center gap-1 text-xs text-primary font-mono">
                   <span class="material-symbols-outlined text-[14px]">speed</span>
-                  -35% with Socratic prompts
+                  {m2_sub}
                 </span>
               </div>
             </div>
@@ -1280,11 +1507,11 @@ def render_analytics():
                 <span class="material-symbols-outlined text-error text-[20px]">report</span>
               </div>
               <div class="my-2">
-                <div class="text-lg font-bold text-on-surface truncate">{html.escape(top_spot)}</div>
-                <span class="text-xs text-primary font-mono">{top_pct}% of total incidents</span>
+                <div class="text-lg font-bold text-on-surface truncate">{m3_spot}</div>
+                <span class="text-xs text-primary font-mono">{m3_sub}</span>
               </div>
               <div class="w-full bg-surface-container-highest rounded-full h-1.5 overflow-hidden">
-                <div class="bg-primary-container h-full rounded-full" style="width: {top_pct}%;"></div>
+                <div class="bg-primary-container h-full rounded-full" style="width: {m3_bar};"></div>
               </div>
             </div>
 
@@ -1305,15 +1532,15 @@ def render_analytics():
                 <div class="flex flex-col gap-1 w-full text-xs font-mono">
                   <div class="flex items-center justify-between">
                     <span class="text-on-surface-variant">Logic:</span>
-                    <span class="text-on-surface font-semibold">{logic_pct}%</span>
+                    <span class="text-on-surface font-semibold">{m4_logic}</span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="text-on-surface-variant">Runtime:</span>
-                    <span class="text-on-surface font-semibold">{runtime_pct}%</span>
+                    <span class="text-on-surface font-semibold">{m4_runtime}</span>
                   </div>
                   <div class="flex items-center justify-between">
                     <span class="text-on-surface-variant">State:</span>
-                    <span class="text-on-surface font-semibold">{state_pct}%</span>
+                    <span class="text-on-surface font-semibold">{m4_state}</span>
                   </div>
                 </div>
               </div>
@@ -1328,12 +1555,12 @@ def render_analytics():
                 <div class="text-xs text-on-surface-variant">Resolved anomalies categorised by syntactic &amp; architectural archetype</div>
               </div>
               <span class="px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-mono text-xs">
-                {total_bugs} incidents recorded
+                {banner_incidents}
               </span>
             </div>
 
             <div class="flex flex-col gap-4 py-2">
-              {bars_html}
+              {matrix_content_html}
             </div>
 
             <div class="pt-3 flex items-center justify-between text-on-surface-variant text-xs">
@@ -1373,7 +1600,7 @@ def render_analytics():
                 </tr>
               </thead>
               <tbody class="divide-y divide-surface-container-highest text-sm">
-                {rows_html}
+                {table_content_html}
               </tbody>
             </table>
           </div>
@@ -1429,38 +1656,6 @@ def render_analytics():
               <button class="px-4 py-1.5 rounded-lg bg-surface-container-lowest hover:bg-surface-bright text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95" onclick="closeDrawer()" type="button">
                 Close
               </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Practice Sandbox Modal -->
-        <div class="fixed inset-0 z-50 hidden bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-center p-4" id="practice-modal">
-          <div class="relative w-full max-w-2xl bg-surface-container rounded-2xl shadow-2xl p-6 flex flex-col gap-6 border border-surface-container-highest">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="material-symbols-outlined text-primary text-[24px]">extension</span>
-                <h3 class="text-xl font-bold text-on-surface">Synthesized Practice Vector</h3>
-              </div>
-              <button class="p-1 rounded-lg text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" onclick="closePracticeModal()" type="button">
-                <span class="material-symbols-outlined text-[20px]">close</span>
-              </button>
-            </div>
-            <div class="flex flex-col gap-3">
-              <p class="text-sm text-on-surface-variant">
-                Based on your frequent <strong class="text-primary font-semibold">{html.escape(top_spot)}</strong> incidents this week, the Duck AI has synthesized an algorithmic training vector:
-              </p>
-              <div class="p-4 rounded-xl bg-surface-container-lowest font-mono text-xs border border-surface-container-highest">
-                <div class="text-primary font-bold mb-1">// Challenge #BOUNDS-04: Boundary Isolation &amp; Fencepost Reducer</div>
-                <div class="text-on-surface-variant">Refactor the slice bounds to handle non-inclusive upper boundaries without dropping terminal elements or raising IndexError.</div>
-              </div>
-            </div>
-            <div class="flex items-center justify-end gap-3">
-              <button class="px-4 py-2 rounded-lg bg-surface-container-high text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105" onclick="closePracticeModal()" type="button">
-                Dismiss
-              </button>
-              <a class="px-5 py-2 rounded-lg bg-primary-container text-on-primary-container text-xs font-semibold hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.4)] shadow-md" href="/?view=studio" target="_top">
-                Launch Socratic Studio
-              </a>
             </div>
           </div>
         </div>
@@ -1528,16 +1723,6 @@ def render_analytics():
 
         function closeDrawer() {{
           const modal = document.getElementById('inspector-modal');
-          if (modal) modal.classList.add('hidden');
-        }}
-
-        function openPracticeModal() {{
-          const modal = document.getElementById('practice-modal');
-          if (modal) modal.classList.remove('hidden');
-        }}
-
-        function closePracticeModal() {{
-          const modal = document.getElementById('practice-modal');
           if (modal) modal.classList.add('hidden');
         }}
 
