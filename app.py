@@ -99,8 +99,23 @@ render_html_block(
         padding-left: 1.5rem !important;
         padding-right: 1.5rem !important;
         padding-bottom: 3rem !important;
-        max-width: 1280px !important;
+        max-width: min(1560px, 96vw) !important;
         margin: 0 auto !important;
+    }
+
+    div[data-testid="stTextArea"]:has(textarea[aria-label="Code Snippet"]) textarea,
+    textarea[aria-label="Code Snippet"] {
+        font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
+        font-size: 0.92rem !important;
+        line-height: 1.5 !important;
+        resize: vertical !important;
+        min-height: 360px !important;
+    }
+
+    div[data-testid="stTextArea"]:has(textarea[aria-label*="dictate with Wispr Flow"]) textarea,
+    textarea[aria-label*="dictate with Wispr Flow"] {
+        resize: vertical !important;
+        min-height: 200px !important;
     }
 
     html, body, [class*="css"] {
@@ -571,6 +586,8 @@ def render_socratic_studio():
         st.session_state.is_saving = False
     if "turn_count" not in st.session_state:
         st.session_state.turn_count = 0
+    if "turn_error" not in st.session_state:
+        st.session_state.turn_error = None
     if "solved_record" not in st.session_state:
         st.session_state.solved_record = None
     if "bug_desc_input" not in st.session_state:
@@ -751,7 +768,7 @@ def render_socratic_studio():
             "Say what is going wrong (dictate with Wispr Flow)",
             placeholder="Click here, hold your Wispr hotkey, and say what is going wrong. Example: my code is not running and I think I forgot to define a function.",
             key="bug_desc_input",
-            height=100
+            height=210
         )
 
     with col_right:
@@ -780,37 +797,40 @@ def render_socratic_studio():
             "Code Snippet",
             placeholder="# Paste your problematic function or code segment here\ndef process_items(items):\n    for i in range(len(items) - 1):\n        print(items[i])",
             key="code_snippet_input",
-            height=145
+            height=380
         )
 
     # Socratic Turn Execution Engine
     def execute_socratic_turn(user_followup=None):
+        safe_desc = (st.session_state.bug_desc_input or "").strip()
+        safe_code = (st.session_state.code_snippet_input or "").strip()
+        target_lang = (st.session_state.selected_language or "Python").strip()
+
         if user_followup:
-            st.session_state.session_started = True
-            st.session_state.messages.append({"role": "user", "content": user_followup})
-            st.session_state.turn_count += 1
-        elif len(st.session_state.messages) == 0:
-            can_start, initial_prompt, notice = prompts.validate_session_start(
-                st.session_state.bug_desc_input,
-                st.session_state.code_snippet_input
-            )
+            prospective_messages = list(st.session_state.messages) + [{"role": "user", "content": user_followup}]
+            prospective_turn = st.session_state.turn_count + 1
+        else:
+            can_start, initial_prompt, notice = prompts.validate_session_start(safe_desc, safe_code)
             if not can_start:
                 st.info(notice)
                 return
-            st.session_state.session_started = True
-            st.session_state.messages.append({"role": "user", "content": initial_prompt})
-            st.session_state.turn_count = 1
-
-        safe_desc = (st.session_state.bug_desc_input or "").strip()
-        safe_code = (st.session_state.code_snippet_input or "").strip()
+            prospective_messages = [{"role": "user", "content": initial_prompt}]
+            prospective_turn = 1
 
         # Check for user breakthrough or success without cause
         if user_followup:
             if prompts.is_user_success_without_cause(user_followup):
-                st.session_state.messages.append({"role": "assistant", "content": prompts.ROOT_CAUSE_QUESTION})
+                st.session_state.messages = prospective_messages + [{"role": "assistant", "content": prompts.ROOT_CAUSE_QUESTION}]
+                st.session_state.session_started = True
+                st.session_state.turn_count = prospective_turn
+                st.session_state.turn_error = None
                 return
 
-            if prompts.detect_user_breakthrough(user_followup, st.session_state.messages):
+            if prompts.detect_user_breakthrough(user_followup, prospective_messages):
+                st.session_state.messages = prospective_messages
+                st.session_state.session_started = True
+                st.session_state.turn_count = prospective_turn
+                st.session_state.turn_error = None
                 render_html_block(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), skeleton_placeholder)
                 save_session_breakthrough()
                 skeleton_placeholder.empty()
@@ -820,14 +840,15 @@ def render_socratic_studio():
         render_html_block(render_waveform_card(is_thinking=True), waveform_placeholder)
 
         current_key = prompts.resolve_gemini_api_key()
+        duck_q = None
         try:
             res = prompts.generate_socratic_response(
-                messages=st.session_state.messages,
+                messages=prospective_messages,
                 code_snippet=safe_code,
                 bug_description=safe_desc,
-                turn_count=st.session_state.turn_count,
+                turn_count=prospective_turn,
                 api_key=current_key,
-                language=st.session_state.selected_language,
+                language=target_lang,
                 return_details=True
             )
             duck_q = res.get("text", "")
@@ -839,20 +860,40 @@ def render_socratic_studio():
             logger.error("Gemini Socratic call exception: %s. Using fallback heuristic.", e, exc_info=True)
             st.session_state.ai_offline = True
             st.session_state.ai_offline_error = str(e)
-            duck_q = prompts._generate_offline_socratic_response(
-                st.session_state.turn_count,
-                safe_desc,
-                safe_code,
-                st.session_state.messages,
-                st.session_state.selected_language
-            )
 
         if not duck_q or not duck_q.strip():
-            duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
+            try:
+                duck_q = prompts._generate_offline_socratic_response(
+                    prospective_turn,
+                    safe_desc,
+                    safe_code,
+                    prospective_messages,
+                    target_lang
+                )
+            except Exception as offline_err:
+                logger.error("Offline Socratic generator error: %s", offline_err)
+                container_word = "slice" if target_lang == "Go" else ("vector or array" if target_lang in ("C++", "Rust") else "array")
+                duck_q = f"Quack! For an {container_word} of length N in {target_lang}, what index does your code evaluate on its final step?"
 
         # Revert waveform to idle resting state after generation completes
         render_html_block(render_waveform_card(is_thinking=False), waveform_placeholder)
-        st.session_state.messages.append({"role": "assistant", "content": duck_q})
+
+        if duck_q and duck_q.strip():
+            # Atomically commit messages and turn state
+            st.session_state.messages = prospective_messages + [{"role": "assistant", "content": duck_q.strip()}]
+            st.session_state.session_started = True
+            st.session_state.turn_count = prospective_turn
+            st.session_state.turn_error = None
+        else:
+            st.session_state.turn_error = "Unable to formulate a Socratic question. Please click Retry."
+
+    # Visible Error and Retry Button
+    if st.session_state.get("turn_error"):
+        st.error(f"Socratic Turn Error: {st.session_state.turn_error}")
+        if st.button("Retry Socratic Turn", key="btn_retry_socratic_turn"):
+            st.session_state.turn_error = None
+            execute_socratic_turn()
+            st.rerun()
 
     # Prominent "Start Quacking with the Duck" Button
     if len(st.session_state.messages) == 0:
@@ -865,6 +906,18 @@ def render_socratic_studio():
             else:
                 execute_socratic_turn()
                 st.rerun()
+
+    # Self-healing recovery: guarantee started session is never left with an empty feed
+    if st.session_state.session_started and not any(m.get("role") == "assistant" for m in st.session_state.messages):
+        recovery_q = prompts._generate_offline_socratic_response(
+            st.session_state.turn_count or 1,
+            st.session_state.bug_desc_input or "",
+            st.session_state.code_snippet_input or "",
+            st.session_state.messages,
+            st.session_state.selected_language
+        )
+        st.session_state.messages.append({"role": "assistant", "content": recovery_q})
+        st.session_state.turn_error = None
 
     # Conversation Feed Display
     if len(st.session_state.messages) > 0 or st.session_state.session_started:
