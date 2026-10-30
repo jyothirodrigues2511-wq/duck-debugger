@@ -541,6 +541,19 @@ def validate_session_start(
     return (True, initial_msg, "")
 
 
+def clean_html(raw_html: str) -> str:
+    """
+    Cleans raw HTML strings for safe rendering in Streamlit.
+    Strips leading indentation from each line, removes blank lines,
+    and returns a compact string with zero lines starting with 4+ spaces
+    and no blank lines inside the HTML, preventing CommonMark code-block misinterpretation.
+    """
+    if not raw_html:
+        return ""
+    lines = [line.strip() for line in raw_html.splitlines() if line.strip()]
+    return "\n".join(lines)
+
+
 def render_waveform_card(is_thinking: bool = False) -> str:
     """
     Renders the Duck waveform card.
@@ -548,61 +561,44 @@ def render_waveform_card(is_thinking: bool = False) -> str:
     When is_thinking is False (idle), the waveform is static and resting.
     Label is strictly 'Duck is thinking'.
     No fake audio or kbps claims.
+    Guaranteed clean HTML: zero leading indentation, no blank lines, balanced tags.
     """
     if is_thinking:
-        status_badge = """
-        <span style="color:#9d4edd; font-weight:600; font-size:11px; font-family:'JetBrains Mono'; display:inline-flex; align-items:center; gap:6px;">
-          <span style="width:6px; height:6px; border-radius:9999px; background:#9d4edd; box-shadow:0 0 8px #9d4edd;"></span>
-          Thinking...
-        </span>
-        """
-        svg_body = """
-        <style>
-          @keyframes waveUndulate {
-            0% { transform: translateY(0px) scaleY(0.7); }
-            50% { transform: translateY(-3px) scaleY(1.3); }
-            100% { transform: translateY(0px) scaleY(0.7); }
-          }
-          @keyframes waveFlow {
-            0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -120; }
-          }
-          .duck-wave-active-main {
-            animation: waveFlow 2.4s linear infinite, waveUndulate 1.2s ease-in-out infinite alternate;
-            stroke-dasharray: 14, 6;
-            transform-origin: center;
-          }
-          .duck-wave-active-sub {
-            animation: waveFlow 3.2s linear infinite reverse, waveUndulate 1.5s ease-in-out infinite alternate;
-            stroke-dasharray: 10, 5;
-            transform-origin: center;
-          }
-        </style>
-        <svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">
-          <path class="duck-wave-active-main" d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#9d4edd" stroke-width="2.5" stroke-linecap="round"/>
-          <path class="duck-wave-active-sub" d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#c77dff" stroke-width="1.5" stroke-opacity="0.7"/>
-        </svg>
-        """
+        status_badge = (
+            '<span style="color:#9d4edd; font-weight:600; font-size:11px; font-family:\'JetBrains Mono\'; display:inline-flex; align-items:center; gap:6px;">'
+            '<span style="width:6px; height:6px; border-radius:9999px; background:#9d4edd; box-shadow:0 0 8px #9d4edd;"></span>'
+            'Thinking...'
+            '</span>'
+        )
+        svg_body = (
+            '<style>'
+            '@keyframes waveUndulate { 0% { transform: translateY(0px) scaleY(0.7); } 50% { transform: translateY(-3px) scaleY(1.3); } 100% { transform: translateY(0px) scaleY(0.7); } } '
+            '@keyframes waveFlow { 0% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -120; } } '
+            '.duck-wave-active-main { animation: waveFlow 2.4s linear infinite, waveUndulate 1.2s ease-in-out infinite alternate; stroke-dasharray: 14, 6; transform-origin: center; } '
+            '.duck-wave-active-sub { animation: waveFlow 3.2s linear infinite reverse, waveUndulate 1.5s ease-in-out infinite alternate; stroke-dasharray: 10, 5; transform-origin: center; }'
+            '</style>'
+            '<svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">'
+            '<path class="duck-wave-active-main" d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#9d4edd" stroke-width="2.5" stroke-linecap="round"/>'
+            '<path class="duck-wave-active-sub" d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#c77dff" stroke-width="1.5" stroke-opacity="0.7"/>'
+            '</svg>'
+        )
     else:
-        status_badge = """
-        <span style="color:#7b7582; font-weight:600; font-size:11px; font-family:'JetBrains Mono';">Ready</span>
-        """
-        svg_body = """
-        <svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">
-          <path d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#52326b" stroke-width="2.0" stroke-linecap="round" opacity="0.45"/>
-          <path d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#3b2052" stroke-width="1.5" opacity="0.3"/>
-        </svg>
-        """
+        status_badge = '<span style="color:#7b7582; font-weight:600; font-size:11px; font-family:\'JetBrains Mono\';">Ready</span>'
+        svg_body = (
+            '<svg width="100%" height="45" viewBox="0 0 300 45" fill="none" style="overflow:visible;">'
+            '<path d="M0 22 Q 15 5, 30 22 T 60 22 T 90 5 T 120 40 T 150 12 T 180 32 T 210 10 T 240 35 T 270 18 T 300 22" stroke="#52326b" stroke-width="2.0" stroke-linecap="round" opacity="0.45"/>'
+            '<path d="M0 22 Q 20 18, 40 22 T 80 25 T 120 16 T 160 28 T 200 20 T 240 24 T 280 21 T 300 22" stroke="#3b2052" stroke-width="1.5" opacity="0.3"/>'
+            '</svg>'
+        )
 
-    return f"""
-    <div style="background:#050d25; border:1px solid #2c344d; border-radius:12px; padding:12px 16px; margin-bottom:16px;">
-      <div style="display:flex; justify-content:space-between; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5; margin-bottom:6px;">
-        <span>Duck is thinking</span>
-        {status_badge}
-      </div>
-      {svg_body}
-    </div>
-    """
+    raw_markup = f"""<div style="background:#050d25; border:1px solid #2c344d; border-radius:12px; padding:12px 16px; margin-bottom:16px;">
+<div style="display:flex; justify-content:space-between; font-size:11px; font-family:'JetBrains Mono'; color:#d0c2d5; margin-bottom:6px;">
+<span>Duck is thinking</span>
+{status_badge}
+</div>
+{svg_body}
+</div>"""
+    return clean_html(raw_markup)
 
 
 def generate_socratic_response(

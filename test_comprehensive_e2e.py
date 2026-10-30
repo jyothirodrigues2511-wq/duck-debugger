@@ -9,6 +9,7 @@ import unittest
 import sqlite3
 import threading
 import time
+from html.parser import HTMLParser
 from unittest.mock import MagicMock, patch
 
 # Ensure target workspace is in path
@@ -817,6 +818,82 @@ class TestScope1To10Exhaustive(unittest.TestCase):
         self.assertNotIn("128 kbps", thinking_card)
         self.assertNotIn("Continuous Listening", thinking_card)
         self.assertNotIn("Vocal Cadence", thinking_card)
+
+    def test_render_waveform_card_html_formatting_and_tag_balancing(self):
+        """
+        Verifies waveform HTML output in both idle and thinking states:
+        1. Zero lines starting with 4 or more leading spaces (prevents CommonMark code block conversion).
+        2. Zero internal blank lines.
+        3. HTML tags are strictly balanced (open and close pairs for div, svg, span, style, etc.).
+        """
+        tc = self
+        class WaveformTagValidator(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self.stack = []
+                self.void_elements = {"path", "img", "br", "hr", "input", "meta", "link"}
+
+            def handle_starttag(self, tag, attrs):
+                if tag not in self.void_elements:
+                    self.stack.append(tag)
+
+            def handle_endtag(self, tag):
+                if tag not in self.void_elements:
+                    tc.assertTrue(len(self.stack) > 0, f"Unexpected closing tag </{tag}> with empty stack")
+                    expected = self.stack.pop()
+                    tc.assertEqual(expected, tag, f"Mismatched HTML tag: expected </{expected}>, got </{tag}>")
+
+        for is_thinking in [False, True]:
+            card_html = prompts.render_waveform_card(is_thinking=is_thinking)
+            self.assertTrue(len(card_html) > 0)
+
+            # Assert no line starts with 4+ spaces and no blank lines
+            lines = card_html.split("\n")
+            for idx, line in enumerate(lines):
+                self.assertFalse(
+                    line.startswith("    "),
+                    f"State is_thinking={is_thinking}: Line {idx} starts with 4+ spaces: {line[:30]!r}"
+                )
+                self.assertTrue(
+                    len(line.strip()) > 0,
+                    f"State is_thinking={is_thinking}: Line {idx} is empty or whitespace-only"
+                )
+
+            # Assert balanced tags
+            validator = WaveformTagValidator()
+            validator.feed(card_html)
+            self.assertEqual(
+                len(validator.stack),
+                0,
+                f"State is_thinking={is_thinking}: Unclosed tags remaining: {validator.stack}"
+            )
+
+    def test_clean_html_strips_indentation_and_blank_lines(self):
+        """Verifies clean_html removes leading indentation and blank lines across arbitrary HTML snippets."""
+        messy_html = """
+            <div style="background:#111;">
+                
+                <span>Hello Duck</span>
+
+                    <svg viewBox="0 0 100 100">
+                        <path d="M0 0 L10 10"/>
+                    </svg>
+
+            </div>
+        """
+        cleaned = prompts.clean_html(messy_html)
+
+        for line in cleaned.split("\n"):
+            self.assertFalse(line.startswith("    "), f"Line still has 4+ leading spaces: {line!r}")
+            self.assertTrue(len(line.strip()) > 0, "Cleaned HTML contains blank lines")
+
+        self.assertIn("<span>Hello Duck</span>", cleaned)
+        self.assertIn('<div style="background:#111;">', cleaned)
+        self.assertIn("</div>", cleaned)
+
+        # Edge cases
+        self.assertEqual(prompts.clean_html(""), "")
+        self.assertEqual(prompts.clean_html("   \n\t  \n "), "")
 
 
 if __name__ == "__main__":

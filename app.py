@@ -48,6 +48,22 @@ st.set_page_config(
 # Initialize database
 db.init_db()
 
+
+def render_html_block(html_content: str, container=None) -> None:
+    """
+    Renders HTML safely without Markdown code block leaks.
+    Strips indentation and blank lines using prompts.clean_html,
+    and leverages st.html if supported by Streamlit, falling back to
+    markdown(..., unsafe_allow_html=True).
+    """
+    cleaned = prompts.clean_html(html_content)
+    target = container if container is not None else st
+    if hasattr(target, "html"):
+        target.html(cleaned)
+    else:
+        target.markdown(cleaned, unsafe_allow_html=True)
+
+
 # Resolve active Gemini API key dynamically across st.secrets, .env, and environment
 def get_current_api_key() -> str:
     return prompts.resolve_gemini_api_key() or ""
@@ -65,7 +81,7 @@ if "current_route" not in st.session_state:
 is_route_transition = (st.session_state.current_route != active_view)
 
 # --- Full-Bleed Stitch Styling with Hover Animations & Responsive CSS ---
-st.markdown(
+render_html_block(
     """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
@@ -251,8 +267,7 @@ st.markdown(
         }
     }
     </style>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 # Navigation Pill Styles
@@ -290,7 +305,7 @@ else:
     streak_badge_text = "0 Day Streak"
 
 # --- Top Navigation Bar & Pure-CSS Sliding Drawer ---
-st.markdown(
+render_html_block(
     f"""
     <!-- Hidden Checkbox for Pure-CSS Drawer Toggle -->
     <input type="checkbox" id="nav-drawer-toggle" style="display:none;" />
@@ -370,13 +385,12 @@ st.markdown(
         <span style="font-family:'JetBrains Mono'; font-size:10px; color:#998d9e;">Duck Kernel 6.1 • Zero Hallucination</span>
       </div>
     </aside>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 # --- Dynamic Skeleton Loading Screen Function ---
 def render_full_skeleton_screen(route_name="socratic-studio.duck", label="Socratic Engine Syncing..."):
-    return f"""
+    markup = f"""
     <div style="margin: 16px 0 32px 0; display:flex; flex-direction:column; gap:20px;">
       <!-- Route Breadcrumb & Latency Bar -->
       <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; padding:8px 4px;">
@@ -527,13 +541,14 @@ def render_full_skeleton_screen(route_name="socratic-studio.duck", label="Socrat
       </div>
     </div>
     """
+    return prompts.clean_html(markup)
 
 # --- Route Transition Skeleton Screen Trigger ---
 if is_route_transition:
     route_name = "analytics-weak-spots.duck" if active_view == "analytics" else "socratic-studio.duck"
     label_name = "Hydrating Telemetry & Analytics..." if active_view == "analytics" else "Socratic Engine Syncing..."
     trans_box = st.empty()
-    trans_box.markdown(render_full_skeleton_screen(route_name, label_name), unsafe_allow_html=True)
+    render_html_block(render_full_skeleton_screen(route_name, label_name), trans_box)
     time.sleep(0.55)
     trans_box.empty()
     st.session_state.current_route = active_view
@@ -650,7 +665,7 @@ def render_socratic_studio():
     col_sub_left, col_sub_right = st.columns([2.2, 1.8], vertical_alignment="center")
     with col_sub_left:
         status_mode = "Active" if len(st.session_state.messages) > 0 else "Standby"
-        st.markdown(
+        render_html_block(
             f"""
             <div style="display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:12px;">
               <span class="hover-pill" style="display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:9999px; background:rgba(157,78,221,0.2); color:#e0b6ff; font-family:'JetBrains Mono'; font-size:11px; font-weight:600;">
@@ -667,13 +682,12 @@ def render_socratic_studio():
                 #DBG-8942
               </span>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         if st.session_state.get("ai_offline"):
             err_text = html.escape(str(st.session_state.get("ai_offline_error") or "AI engine offline, using basic mode"))
-            st.markdown(
+            render_html_block(
                 f"""
                 <div class="hover-lift" style="display:flex; align-items:center; gap:8px; padding:8px 14px; border-radius:10px; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.35); color:#fca5a5; font-family:'JetBrains Mono'; font-size:11px; margin-bottom:12px;">
                   <span class="material-symbols-outlined" style="font-size:18px; color:#f87171;">cloud_off</span>
@@ -682,8 +696,7 @@ def render_socratic_studio():
                     <span style="color:#fca5a5; margin-left:6px;">{err_text}</span>
                   </div>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
     with col_sub_right:
@@ -694,7 +707,7 @@ def render_socratic_studio():
                     st.button("Saved", key="btn_mark_solved_top", disabled=True, use_container_width=True)
                 else:
                     if st.button("Mark as Solved", key="btn_mark_solved_top", type="primary", use_container_width=True, help="Mark this debugging session as solved and record telemetry"):
-                        skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                        render_html_block(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), skeleton_placeholder)
                         save_session_breakthrough()
                         skeleton_placeholder.empty()
                         st.rerun()
@@ -718,7 +731,7 @@ def render_socratic_studio():
     duck_avatar_url = "https://lh3.googleusercontent.com/aida-public/AB6AXuCkejLzHkcuV4UxXNv9zVHIia-SYl2uq21ullUgEBqeR9fA1SUEWxZKCqUFXDPMdBmd4krj1OFG-Sggj10GU9-Lbmov-md2Gw_lqAVxKFUA09YmxB4ddTSXkTQ9hX5AJxtJvvTGivZs-Ch_8fxJ8EzTavRoZ46b-0KtpRbu0fAisbYB48n2rBv-ljzxuxh5cAjwKnu4fDww32eKC6jOCP8pAV_WC49Tv1NuaDR9TzczPh0e-y55Mz7_kg"
 
     with col_left:
-        st.markdown(
+        render_html_block(
             """
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
               <div style="display:flex; align-items:center; gap:8px;">
@@ -727,13 +740,12 @@ def render_socratic_studio():
               </div>
               <span class="hover-pill" style="font-size:11px; font-family:'JetBrains Mono'; padding:2px 8px; border-radius:9999px; background:#131a33; color:#d0c2d5; border:1px solid #2c344d;">Voice input: dictate with Wispr Flow</span>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         # Interactive Waveform Graph (Animates only while Duck is thinking)
         waveform_placeholder = st.empty()
-        waveform_placeholder.markdown(render_waveform_card(is_thinking=False), unsafe_allow_html=True)
+        render_html_block(render_waveform_card(is_thinking=False), waveform_placeholder)
 
         st.text_area(
             "Say what is going wrong (dictate with Wispr Flow)",
@@ -743,7 +755,7 @@ def render_socratic_studio():
         )
 
     with col_right:
-        st.markdown(
+        render_html_block(
             """
             <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
               <div style="display:flex; align-items:center; gap:8px;">
@@ -751,8 +763,7 @@ def render_socratic_studio():
                 <span style="font-size:1.1rem; font-weight:700; color:#dbe1ff;">Code Context &amp; Socratic Canvas</span>
               </div>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         # Language Selector
@@ -800,13 +811,13 @@ def render_socratic_studio():
                 return
 
             if prompts.detect_user_breakthrough(user_followup, st.session_state.messages):
-                skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                render_html_block(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), skeleton_placeholder)
                 save_session_breakthrough()
                 skeleton_placeholder.empty()
                 return
 
         # Animate waveform exclusively during active generation (loading state)
-        waveform_placeholder.markdown(render_waveform_card(is_thinking=True), unsafe_allow_html=True)
+        render_html_block(render_waveform_card(is_thinking=True), waveform_placeholder)
 
         current_key = prompts.resolve_gemini_api_key()
         try:
@@ -840,7 +851,7 @@ def render_socratic_studio():
             duck_q = "Quack! Walk me through what value that variable actually holds at this exact step."
 
         # Revert waveform to idle resting state after generation completes
-        waveform_placeholder.markdown(render_waveform_card(is_thinking=False), unsafe_allow_html=True)
+        render_html_block(render_waveform_card(is_thinking=False), waveform_placeholder)
         st.session_state.messages.append({"role": "assistant", "content": duck_q})
 
     # Prominent "Start Quacking with the Duck" Button
@@ -857,7 +868,7 @@ def render_socratic_studio():
 
     # Conversation Feed Display
     if len(st.session_state.messages) > 0 or st.session_state.session_started:
-        st.markdown("<div style='margin-top:24px;'></div>", unsafe_allow_html=True)
+        render_html_block("<div style='margin-top:24px;'></div>")
 
         for i, msg in enumerate(st.session_state.messages):
             if i == 0 and msg.get("role") == "user" and not st.session_state.solved:
@@ -866,7 +877,7 @@ def render_socratic_studio():
             content_safe = html.escape(msg.get("content", ""))
 
             if msg.get("role") == "assistant":
-                st.markdown(
+                render_html_block(
                     f"""
                     <div class="hover-lift" style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px; border-radius:14px; padding:4px;">
                       <div style="width:44px; height:44px; border-radius:12px; overflow:hidden; border:1px solid #9d4edd; flex-shrink:0; box-shadow:0 0 12px rgba(157,78,221,0.3);">
@@ -881,11 +892,10 @@ def render_socratic_studio():
                         </div>
                       </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
             else:
-                st.markdown(
+                render_html_block(
                     f"""
                     <div class="hover-lift" style="display:flex; align-items:flex-start; justify-content:flex-end; gap:16px; margin-bottom:16px; border-radius:14px; padding:4px;">
                       <div style="max-width:75%; text-align:right;">
@@ -900,8 +910,7 @@ def render_socratic_studio():
                         YOU
                       </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
 
         # Breakthrough Solved Card
@@ -914,7 +923,7 @@ def render_socratic_studio():
                   Notice: {html.escape(rec['fallback_notice'])}
                 </div>
                 """
-            st.markdown(
+            render_html_block(
                 f"""
                 <div class="breakthrough-box hover-lift">
                   <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
@@ -947,8 +956,7 @@ def render_socratic_studio():
                     </a>
                   </div>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
         # Feed Mark as Solved action button
@@ -956,7 +964,7 @@ def render_socratic_studio():
             solve_feed_l, solve_feed_r = st.columns([2.5, 1.5])
             with solve_feed_r:
                 if st.button("Mark as Solved", key="btn_mark_solved_feed", type="primary", use_container_width=True, help="Mark this debugging session as solved"):
-                    skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                    render_html_block(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), skeleton_placeholder)
                     save_session_breakthrough()
                     skeleton_placeholder.empty()
                     st.rerun()
@@ -999,7 +1007,7 @@ def show_practice_dialog(weak_spot: str, language: str = "Python"):
         return
 
     category_label = str(data.get("category", weak_spot or "Logic")).upper()
-    st.markdown(
+    render_html_block(
         f"""
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
           <span style="background:#9d4edd; color:#ffffff; padding:3px 12px; border-radius:9999px; font-size:11px; font-weight:700; font-family:'JetBrains Mono';">
@@ -1007,8 +1015,7 @@ def show_practice_dialog(weak_spot: str, language: str = "Python"):
           </span>
           <span style="color:#d0c2d5; font-size:12px; font-family:'JetBrains Mono';">Targeting your verified error patterns</span>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
     if data.get("notice"):
@@ -1028,7 +1035,7 @@ def show_practice_dialog(weak_spot: str, language: str = "Python"):
         st.code(data["solution_code"], language=language.lower())
         st.markdown(f"**Why this works:** {data['solution_explanation']}")
 
-    st.markdown("<div style='margin-top:16px;'></div>", unsafe_allow_html=True)
+    render_html_block("<div style='margin-top:16px;'></div>")
     col_close, col_another = st.columns([1, 1])
     with col_close:
         if st.button("Close", key="btn_close_practice_modal", use_container_width=True):
@@ -1128,13 +1135,12 @@ def render_analytics():
     # Top-Level Streamlit Action Header
     col_an_header, col_an_actions = st.columns([2.5, 1.5], vertical_alignment="center")
     with col_an_header:
-        st.markdown(
+        render_html_block(
             """
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
               <span style="font-size:1.15rem; font-weight:700; color:#dbe1ff;">Debugging Intelligence &amp; Weak Spot Analytics</span>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
     with col_an_actions:
         if st.button("Generate Practice Problem", key="btn_practice_top_level", type="primary", use_container_width=True, help="Synthesize targeted practice challenge based on your weak spots"):
@@ -1743,7 +1749,7 @@ else:
     render_socratic_studio()
 
 # --- Footer ---
-st.markdown(
+render_html_block(
     """
     <div style="margin-top: 50px; padding: 24px 0; border-top: 1px solid #171e37; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; font-size: 11px; font-family: 'JetBrains Mono', monospace; color: #998d9e;">
       <div style="display: flex; align-items: center; gap: 8px;">
@@ -1755,6 +1761,5 @@ st.markdown(
         <span>Telemetry Synchronized</span>
       </div>
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
