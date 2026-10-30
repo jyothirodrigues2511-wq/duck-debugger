@@ -555,6 +555,7 @@ class TestScope1To10Exhaustive(unittest.TestCase):
         session_state = {"solved": True, "solved_record": {"id": bug_id, "root_cause": "Boundary index excluded last array element."}}
         if session_state.get("solved") and session_state.get("solved_record"):
             record = session_state["solved_record"]
+            self.assertEqual(record["id"], bug_id)
         else:
             db.save_bug(
                 bug_type="Logic",

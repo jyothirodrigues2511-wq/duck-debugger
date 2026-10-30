@@ -30,7 +30,7 @@ def _resolve_writable_db_path() -> str:
     try:
         os.makedirs(default_dir, exist_ok=True)
         test_file = os.path.join(default_dir, ".write_test")
-        with open(test_file, "a") as f:
+        with open(test_file, "a"):
             pass
         os.remove(test_file)
         return os.path.join(default_dir, "duck_debugger.db")
@@ -181,7 +181,9 @@ def _init_db_core(seed_samples: bool = True) -> None:
         conn.commit()
 
         # Check if table is empty and seed demo data
-        if seed_samples:
+        seed_env = os.environ.get("DUCK_DEBUGGER_SEED", "1").strip().lower()
+        allow_seed = seed_samples and (seed_env not in ("0", "false", "no"))
+        if allow_seed:
             cursor.execute("SELECT COUNT(*) as count FROM bugs")
             row = cursor.fetchone()
             if row and row["count"] == 0:
@@ -332,20 +334,46 @@ def save_bug(
         return cursor.lastrowid
 
 
-def get_all_bugs(query: Optional[str] = None) -> List[Dict[str, Any]]:
+def resolve_time_cutoff(time_range: Optional[str]) -> Optional[str]:
+    """
+    Resolves human and code time range descriptors into an ISO datetime string cutoff.
+    Returns None for 'all' or unrecognized strings.
+    """
+    if not time_range:
+        return None
+    low = str(time_range).strip().lower()
+    if low in ("30d", "last 30 days", "30 days", "last_30_days", "30"):
+        return (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+    if low in ("quarter", "this quarter", "quarterly", "this_quarter", "90d", "90 days", "90"):
+        return (datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d %H:%M:%S")
+    return None
+
+
+def get_all_bugs(query: Optional[str] = None, time_range: Optional[str] = None) -> List[Dict[str, Any]]:
     """
     Retrieves all bugs, optionally filtering by keyword across root_cause, lesson,
-    bug_type, and language. Safely escapes SQL LIKE wildcards (% and _) to avoid wildcard injection,
+    bug_type, and language, and optionally by time_range ('30d', 'quarter', 'all').
+    Safely escapes SQL LIKE wildcards (% and _) to avoid wildcard injection,
     strips null bytes, and bounds query length to avoid SQLite LIKE pattern complexity errors.
     """
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
+            cutoff = resolve_time_cutoff(time_range)
+
             if query and isinstance(query, str) and query.strip():
                 # Sanitize and bound query to 500 chars to avoid pattern-complexity limits
                 clean_query = query.strip().replace("\x00", "")[:500]
                 if not clean_query:
-                    cursor.execute("SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet FROM bugs ORDER BY id DESC")
+                    if cutoff:
+                        cursor.execute(
+                            "SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet FROM bugs WHERE timestamp >= ? ORDER BY id DESC",
+                            (cutoff,)
+                        )
+                    else:
+                        cursor.execute(
+                            "SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet FROM bugs ORDER BY id DESC"
+                        )
                     return [dict(row) for row in cursor.fetchall()]
 
                 # Escape LIKE wildcards to prevent wildcard injection
@@ -355,26 +383,52 @@ def get_all_bugs(query: Optional[str] = None) -> List[Dict[str, Any]]:
                     .replace("_", "\\_")
                 )
                 wildcard = f"%{escaped}%"
-                cursor.execute(
-                    """
-                    SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
-                    FROM bugs
-                    WHERE root_cause LIKE ? ESCAPE '\\'
-                       OR lesson LIKE ? ESCAPE '\\'
-                       OR bug_type LIKE ? ESCAPE '\\'
-                       OR language LIKE ? ESCAPE '\\'
-                    ORDER BY id DESC
-                    """,
-                    (wildcard, wildcard, wildcard, wildcard)
-                )
+                if cutoff:
+                    cursor.execute(
+                        """
+                        SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
+                        FROM bugs
+                        WHERE (root_cause LIKE ? ESCAPE '\\'
+                           OR lesson LIKE ? ESCAPE '\\'
+                           OR bug_type LIKE ? ESCAPE '\\'
+                           OR language LIKE ? ESCAPE '\\')
+                          AND timestamp >= ?
+                        ORDER BY id DESC
+                        """,
+                        (wildcard, wildcard, wildcard, wildcard, cutoff)
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
+                        FROM bugs
+                        WHERE root_cause LIKE ? ESCAPE '\\'
+                           OR lesson LIKE ? ESCAPE '\\'
+                           OR bug_type LIKE ? ESCAPE '\\'
+                           OR language LIKE ? ESCAPE '\\'
+                        ORDER BY id DESC
+                        """,
+                        (wildcard, wildcard, wildcard, wildcard)
+                    )
             else:
-                cursor.execute(
-                    """
-                    SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
-                    FROM bugs
-                    ORDER BY id DESC
-                    """
-                )
+                if cutoff:
+                    cursor.execute(
+                        """
+                        SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
+                        FROM bugs
+                        WHERE timestamp >= ?
+                        ORDER BY id DESC
+                        """,
+                        (cutoff,)
+                    )
+                else:
+                    cursor.execute(
+                        """
+                        SELECT id, timestamp, bug_type, scope, root_cause, lesson, language, description, code_snippet
+                        FROM bugs
+                        ORDER BY id DESC
+                        """
+                    )
             rows = cursor.fetchall()
             return [dict(row) for row in rows]
     except sqlite3.OperationalError as oe:
@@ -436,18 +490,22 @@ def compute_bug_streak(target_date: Optional[datetime.date] = None) -> int:
         return 0
 
 
-def get_bug_stats() -> Dict[str, Any]:
+def get_bug_stats(time_range: Optional[str] = None) -> Dict[str, Any]:
     """
     Computes bug type frequencies, weekly counts, streak, average turnaround,
-    and scope breakdown directly from SQLite.
+    and scope breakdown directly from SQLite, optionally filtered by time_range ('30d', 'quarter', 'all').
     Returns safe default structures if database is inaccessible or empty.
     Never invents statistics.
     """
     try:
         with get_connection() as conn:
             cursor = conn.cursor()
+            cutoff = resolve_time_cutoff(time_range)
 
-            cursor.execute("SELECT COUNT(*) as total FROM bugs")
+            if cutoff:
+                cursor.execute("SELECT COUNT(*) as total FROM bugs WHERE timestamp >= ?", (cutoff,))
+            else:
+                cursor.execute("SELECT COUNT(*) as total FROM bugs")
             total_bugs = cursor.fetchone()["total"]
 
             if total_bugs == 0:
@@ -469,18 +527,30 @@ def get_bug_stats() -> Dict[str, Any]:
                     "has_data": False
                 }
 
-            # Distribution across all bugs
-            cursor.execute(
-                """
-                SELECT bug_type, COUNT(*) as count
-                FROM bugs
-                GROUP BY bug_type
-                ORDER BY count DESC
-                """
-            )
+            # Distribution across bugs
+            if cutoff:
+                cursor.execute(
+                    """
+                    SELECT bug_type, COUNT(*) as count
+                    FROM bugs
+                    WHERE timestamp >= ?
+                    GROUP BY bug_type
+                    ORDER BY count DESC
+                    """,
+                    (cutoff,)
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT bug_type, COUNT(*) as count
+                    FROM bugs
+                    GROUP BY bug_type
+                    ORDER BY count DESC
+                    """
+                )
             type_counts = {row["bug_type"]: row["count"] for row in cursor.fetchall()}
 
-            # Weekly calculations (last 7 days)
+            # Weekly calculations (last 7 days or cutoff)
             seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
             cursor.execute(
                 """
@@ -506,19 +576,36 @@ def get_bug_stats() -> Dict[str, Any]:
             top_weak_spot_pct = int(round((top_weak_spot_count / total_bugs * 100))) if total_bugs > 0 else 0
 
             # Averages from SQLite
-            cursor.execute("SELECT AVG(turn_count) as avg_t, AVG(duration_seconds) as avg_d FROM bugs")
+            if cutoff:
+                cursor.execute(
+                    "SELECT AVG(turn_count) as avg_t, AVG(duration_seconds) as avg_d FROM bugs WHERE timestamp >= ?",
+                    (cutoff,)
+                )
+            else:
+                cursor.execute("SELECT AVG(turn_count) as avg_t, AVG(duration_seconds) as avg_d FROM bugs")
             avg_row = cursor.fetchone()
             avg_turns = float(avg_row["avg_t"]) if avg_row and avg_row["avg_t"] is not None else 1.0
             avg_duration_seconds = float(avg_row["avg_d"]) if avg_row and avg_row["avg_d"] is not None else 0.0
 
             # Scope counts
-            cursor.execute(
-                """
-                SELECT scope, COUNT(*) as sc_count
-                FROM bugs
-                GROUP BY scope
-                """
-            )
+            if cutoff:
+                cursor.execute(
+                    """
+                    SELECT scope, COUNT(*) as sc_count
+                    FROM bugs
+                    WHERE timestamp >= ?
+                    GROUP BY scope
+                    """,
+                    (cutoff,)
+                )
+            else:
+                cursor.execute(
+                    """
+                    SELECT scope, COUNT(*) as sc_count
+                    FROM bugs
+                    GROUP BY scope
+                    """
+                )
             scope_rows = cursor.fetchall()
             logic_count = sum(r["sc_count"] for r in scope_rows if any(k in (r["scope"] or "").lower() for k in ("logic", "index", "syntax")))
             runtime_count = sum(r["sc_count"] for r in scope_rows if any(k in (r["scope"] or "").lower() for k in ("runtime", "null", "type")))

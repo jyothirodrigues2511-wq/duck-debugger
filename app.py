@@ -13,6 +13,7 @@ import html
 import logging
 import time
 import json
+from typing import Optional
 
 # Windows UTF-8 console output fix
 if sys.platform == "win32":
@@ -1102,14 +1103,35 @@ def show_practice_dialog(weak_spot: str, language: str = "Python"):
             st.rerun()
 
 
-def render_analytics():
+def render_analytics(time_filter: Optional[str] = None):
     if st.query_params.get("practice") in ("1", "true"):
         st.session_state.show_practice_modal = True
         st.session_state.practice_data = None
         st.query_params.pop("practice", None)
 
-    stats = db.get_bug_stats()
-    all_bugs = db.get_all_bugs()
+    # Resolve time filter from argument, session_state, or query params
+    if not time_filter:
+        time_filter = (
+            st.session_state.get("analytics_time_filter")
+            or st.session_state.get("time_filter")
+            or st.query_params.get("range")
+            or st.query_params.get("filter")
+            or "All Time"
+        )
+
+    norm_filter = str(time_filter).strip().lower()
+    if norm_filter in ("30d", "last 30 days", "30 days", "last_30_days", "30"):
+        active_time_label = "Last 30 Days"
+        filter_param = "30d"
+    elif norm_filter in ("quarter", "this quarter", "this_quarter", "quarterly", "90d", "90"):
+        active_time_label = "This Quarter"
+        filter_param = "quarter"
+    else:
+        active_time_label = "All Time"
+        filter_param = "all"
+
+    stats = db.get_bug_stats(time_range=filter_param)
+    all_bugs = db.get_all_bugs(time_range=filter_param)
     total_bugs = stats.get("total_bugs", 0)
     has_data = total_bugs > 0
 
@@ -1147,11 +1169,14 @@ def render_analytics():
         recovery_cost_str = "No data yet"
     elif avg_duration_sec >= 5.0:
         recovery_cost_str = f"{round(avg_duration_sec / 60.0, 1)} min avg turnaround"
-    else:
+    elif avg_turns > 0.0:
         recovery_cost_str = f"{avg_turns:.1f} turns avg turnaround"
+    else:
+        recovery_cost_str = "1.0 turns avg turnaround"
 
-    # Metric card values computed from SQLite
+    # Metric card values computed from SQLite (strictly defined on ALL branches)
     m1_val = str(total_bugs) if has_data else "No data yet"
+    m1_unit = "bugs" if has_data else ""
     m1_sub = f"{total_bugs} verified SQLite records" if has_data else "No data yet"
 
     if not has_data:
@@ -1166,9 +1191,9 @@ def render_analytics():
         m2_sub = f"Across {total_bugs} solved sessions"
     else:
         m2_label = "Avg Turns to Aha!"
-        m2_val = f"{avg_turns:.1f}"
+        m2_val = f"{avg_turns:.1f}" if avg_turns > 0.0 else "1.0"
         m2_unit = "turns"
-        m2_sub = f"Avg Socratic questions to breakthrough"
+        m2_sub = "Avg Socratic questions to breakthrough"
 
     m3_spot = html.escape(top_spot)
     m3_sub = f"{top_pct}% of total incidents" if has_data else "No data yet"
@@ -1184,6 +1209,23 @@ def render_analytics():
         banner_desc = f'<strong class="text-primary font-semibold">{top_pct}% of your debugging sessions</strong> stemmed from {html.escape(top_spot)} patterns, boundary mutations, or loop conditions.'
     else:
         banner_desc = "No debugging telemetry recorded in SQLite yet. Complete a Socratic session to populate analytics."
+
+    # Pill styles for active filter
+    pill_30d_class = (
+        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+        if active_time_label == "Last 30 Days"
+        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+    )
+    pill_quarter_class = (
+        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+        if active_time_label == "This Quarter"
+        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+    )
+    pill_all_class = (
+        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+        if active_time_label == "All Time"
+        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+    )
 
     # Top-Level Streamlit Action Header
     col_an_header, col_an_actions = st.columns([2.5, 1.5], vertical_alignment="center")
@@ -1242,8 +1284,6 @@ def render_analytics():
         safe_scope = html.escape(b.get("scope") or "Logic")
         safe_root = html.escape(b.get("root_cause") or "Root cause not specified")
         safe_lesson = html.escape(b.get("lesson") or "Lesson not specified")
-        safe_desc = html.escape(b.get("description") or "Voice transcript not recorded.")
-        safe_code = html.escape(b.get("code_snippet") or "# No code snippet recorded")
         ts = b.get("timestamp") or "Recent"
 
         bugs_lookup[code_id] = {
@@ -1288,59 +1328,6 @@ def render_analytics():
 
     rows_html = "\n".join(table_rows_parts)
     table_content_html = rows_html if (has_data and rows_html) else '<tr><td colspan="7" class="py-6 px-4 text-center text-on-surface-variant font-mono text-xs">No debugging sessions recorded yet. Complete a session in Socratic Studio to log telemetry.</td></tr>'
-    bugs_json_str = json.dumps(bugs_lookup).replace("<", "\\u003c")
-    for idx, b in enumerate(all_bugs):
-        bug_id = b["id"]
-        code_id = f"DBG-{8900 + bug_id}"
-        safe_type = html.escape(b.get("bug_type") or "General")
-        safe_scope = html.escape(b.get("scope") or "Logic")
-        safe_root = html.escape(b.get("root_cause") or "Root cause not specified")
-        safe_lesson = html.escape(b.get("lesson") or "Lesson not specified")
-        safe_desc = html.escape(b.get("description") or "Voice transcript not recorded.")
-        safe_code = html.escape(b.get("code_snippet") or "# No code snippet recorded")
-        ts = b.get("timestamp") or "Recent"
-
-        bugs_lookup[code_id] = {
-            "id": code_id,
-            "type": b.get("bug_type") or "General",
-            "scope": b.get("scope") or "Logic",
-            "root": b.get("root_cause") or "Root cause not specified",
-            "lesson": b.get("lesson") or "Lesson not specified",
-            "desc": b.get("description") or "Voice transcript not recorded.",
-            "code": b.get("code_snippet") or "# No code snippet recorded",
-            "timestamp": ts
-        }
-
-        row_bg = "bg-surface-container-low" if idx % 2 == 0 else "bg-surface-container-lowest"
-        table_rows_parts.append(f"""
-        <tr class="bug-row {row_bg} hover:bg-surface-container hover:shadow-[0_0_12px_rgba(157,78,221,0.25)] transition-all duration-150 group cursor-pointer" data-id="{code_id}" data-type="{safe_type}" onclick="openDrawer('{code_id}')">
-          <td class="py-3.5 px-4 font-mono font-semibold text-primary">#{code_id}</td>
-          <td class="py-3.5 px-4 text-on-surface-variant whitespace-nowrap font-mono text-[12px]">{ts}</td>
-          <td class="py-3.5 px-4">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm">
-              {safe_type}
-            </span>
-          </td>
-          <td class="py-3.5 px-4">
-            <span class="font-code-md text-code-md text-on-surface-variant">{safe_scope}</span>
-          </td>
-          <td class="py-3.5 px-4 text-on-surface font-medium max-w-xs truncate">
-            {safe_root}
-          </td>
-          <td class="py-3.5 px-4 text-on-surface-variant max-w-sm truncate">
-            {safe_lesson}
-          </td>
-          <td class="py-3.5 px-4 text-right whitespace-nowrap">
-            <div class="inline-flex items-center gap-1">
-              <button class="px-2.5 py-1 rounded bg-surface-container-high hover:bg-primary-container hover:text-on-primary-container text-on-surface text-label-sm font-label-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_12px_rgba(157,78,221,0.3)]" type="button">
-                Inspect Session
-              </button>
-            </div>
-          </td>
-        </tr>
-        """)
-
-    rows_html = "\n".join(table_rows_parts)
     bugs_json_str = json.dumps(bugs_lookup).replace("<", "\\u003c")
 
     analytics_html = f"""<!DOCTYPE html>
@@ -1456,9 +1443,9 @@ def render_analytics():
           <!-- Quick Filter Bar -->
           <div class="flex flex-wrap items-center gap-2 bg-surface-container-low p-1.5 rounded-xl shadow-sm">
             <div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5">
-              <button class="date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]" data-range="30d" type="button">Last 30 Days</button>
-              <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" data-range="quarter" type="button">This Quarter</button>
-              <button class="date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105" data-range="all" type="button">All Time</button>
+              <button class="{pill_30d_class}" data-range="30d" type="button">Last 30 Days</button>
+              <button class="{pill_quarter_class}" data-range="quarter" type="button">This Quarter</button>
+              <button class="{pill_all_class}" data-range="all" type="button">All Time</button>
             </div>
             <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" onclick="alert('Exporting telemetry snapshot as JSON...')" type="button">
               <span class="material-symbols-outlined text-[15px] text-primary">ios_share</span>

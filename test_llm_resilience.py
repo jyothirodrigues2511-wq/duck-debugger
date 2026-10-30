@@ -34,26 +34,28 @@ class TestLLMClientResilience(unittest.TestCase):
     # 1. Missing and Placeholder API Keys
     def test_missing_or_placeholder_api_key(self):
         """Verify missing, empty, or placeholder API keys return None client and trigger offline fallback."""
-        for bad_key in [None, "", "   ", "your_api_key_here", "YOUR_GEMINI_API_KEY", "TODO", "None", "null"]:
-            client = prompts.get_gemini_client(api_key=bad_key)
-            self.assertIsNone(client, f"Client should be None for bad key: {bad_key!r}")
-            
-            # Socratic response should work offline
-            res = prompts.generate_socratic_response([], "x = 1", "test bug", 0, api_key=bad_key)
-            self.assertIsInstance(res, str)
-            self.assertTrue(len(res) > 0)
-            self.assertIn("?", res)
+        with patch.dict(os.environ, {"GEMINI_API_KEY": "", "GOOGLE_API_KEY": "", "GEMINI_KEY": ""}), \
+             patch.object(prompts, "resolve_gemini_api_key", return_value=None):
+            for bad_key in [None, "", "   ", "your_api_key_here", "YOUR_GEMINI_API_KEY", "TODO", "None", "null"]:
+                client = prompts.get_gemini_client(api_key=bad_key)
+                self.assertIsNone(client, f"Client should be None for bad key: {bad_key!r}")
 
-            # JSON extraction should work offline
-            data = prompts.extract_solved_json([], "x = 1", "off by one index bug", "Python", api_key=bad_key)
-            self.assertIsInstance(data, dict)
-            self.assertIn("bug_type", data)
-            self.assertIn("root_cause", data)
+                # Socratic response should work offline
+                res = prompts.generate_socratic_response([], "x = 1", "test bug", 0, api_key=bad_key)
+                self.assertIsInstance(res, str)
+                self.assertTrue(len(res) > 0)
+                self.assertIn("?", res)
 
-            # Practice problem should work offline
-            puzzle = prompts.generate_practice_problem("Off-by-one", "Python", api_key=bad_key)
-            self.assertIsInstance(puzzle, str)
-            self.assertIn("Rubber Duck", puzzle)
+                # JSON extraction should work offline
+                data = prompts.extract_solved_json([], "x = 1", "off by one index bug", "Python", api_key=bad_key)
+                self.assertIsInstance(data, dict)
+                self.assertIn("bug_type", data)
+                self.assertIn("root_cause", data)
+
+                # Practice problem should work offline
+                puzzle = prompts.generate_practice_problem("Off-by-one", "Python", api_key=bad_key)
+                self.assertIsInstance(puzzle, str)
+                self.assertIn("Rubber Duck", puzzle)
 
     # 2. Invalid API Key (Fast Fail, No Useless Retries)
     def test_invalid_api_key_fast_fail(self):
