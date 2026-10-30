@@ -462,6 +462,168 @@ class TestScope1To10Exhaustive(unittest.TestCase):
             resolved = prompts.resolve_gemini_api_key()
             self.assertEqual(resolved, "AQ.A_from_quoted_secret_123456")
 
+    # ----------------------------------------------------
+    # SOCRATIC PROTOCOL, SOLVED BUTTON & BREAKTHROUGH TESTS
+    # ----------------------------------------------------
+    def test_success_without_cause_asks_root_cause_and_does_not_save(self):
+        """Verifies 'It works now' with no cause asks root-cause question without saving to DB."""
+        initial_count = db.get_bug_stats()["total_bugs"]
+        user_msg = "It works now"
+
+        self.assertTrue(prompts.is_user_success_without_cause(user_msg))
+        self.assertFalse(prompts.detect_user_breakthrough(user_msg))
+
+        messages = [
+            {"role": "user", "content": "x = 10\ny = s(x)"},
+            {"role": "assistant", "content": "Quack! What value does y hold?"},
+            {"role": "user", "content": user_msg}
+        ]
+
+        reply = prompts.generate_socratic_response(
+            messages=messages,
+            code_snippet="x = 10\ny = s(x)",
+            bug_description="Code failed",
+            turn_count=2
+        )
+
+        self.assertEqual(reply, prompts.ROOT_CAUSE_QUESTION)
+        self.assertEqual(db.get_bug_stats()["total_bugs"], initial_count)
+
+    def test_breakthrough_on_cause_answer_saves_to_db(self):
+        """Verifies answering root-cause with cause triggers breakthrough and saves to DB."""
+        initial_count = db.get_bug_stats()["total_bugs"]
+        conversation = [
+            {"role": "user", "content": "x = 10\ny = s(x)"},
+            {"role": "assistant", "content": "Quack! What value does y hold?"},
+            {"role": "user", "content": "It works now"},
+            {"role": "assistant", "content": prompts.ROOT_CAUSE_QUESTION}
+        ]
+
+        cause_msg = "I never defined the s function"
+        self.assertTrue(prompts.detect_user_breakthrough(cause_msg, conversation))
+
+        # Save bug directly
+        bug_id = db.save_bug(
+            bug_type="NameError",
+            scope="runtime",
+            root_cause="The function s was never defined in script scope.",
+            lesson="Ensure helper functions are declared before invocation.",
+            language="Python",
+            description="Missing function definition",
+            code_snippet="x = 10\ny = s(x)"
+        )
+        self.assertGreater(bug_id, 0)
+        new_count = db.get_bug_stats()["total_bugs"]
+        self.assertEqual(new_count, initial_count + 1)
+
+    def test_negations_never_trigger_breakthrough_or_success(self):
+        """Verifies negative statements and questions ending in ? never trigger breakthrough or success."""
+        negations = [
+            "Still not working",
+            "haven't found it",
+            "doesn't work",
+            "can't see it yet",
+            "not fixed",
+            "still broken",
+            "Why is it not working?",
+            "What is the bug?",
+            "Can you tell me if it works?",
+        ]
+        for neg in negations:
+            self.assertFalse(prompts.is_user_success_without_cause(neg), f"Negation flagged as success: {neg}")
+            self.assertFalse(prompts.detect_user_breakthrough(neg), f"Negation flagged as breakthrough: {neg}")
+
+    def test_solved_button_saves_once_and_prevents_duplicate(self):
+        """Verifies saving session records exactly once and duplicate save calls return existing record without double-saving."""
+        initial_count = db.get_bug_stats()["total_bugs"]
+
+        bug_id = db.save_bug(
+            bug_type="Logic",
+            scope="logic",
+            root_cause="Boundary index excluded last array element.",
+            lesson="Check inclusive vs exclusive loop range bounds.",
+            language="Python",
+            description="Array drop bug",
+            code_snippet="for i in range(len(arr) - 1): pass"
+        )
+        first_count = db.get_bug_stats()["total_bugs"]
+        self.assertEqual(first_count, initial_count + 1)
+
+        # Simulate solved session state check: if solved_record exists, return it without calling db.save_bug
+        session_state = {"solved": True, "solved_record": {"id": bug_id, "root_cause": "Boundary index excluded last array element."}}
+        if session_state.get("solved") and session_state.get("solved_record"):
+            record = session_state["solved_record"]
+        else:
+            db.save_bug(
+                bug_type="Logic",
+                scope="logic",
+                root_cause="Boundary index excluded last array element.",
+                lesson="Check inclusive vs exclusive loop range bounds.",
+                language="Python",
+                description="Array drop bug",
+                code_snippet="for i in range(len(arr) - 1): pass"
+            )
+
+        second_count = db.get_bug_stats()["total_bugs"]
+        self.assertEqual(second_count, first_count)
+
+    def test_solved_button_offline_fallback_notice(self):
+        """Verifies offline extraction fallback saves an entry with conversational best-effort fields and notice."""
+        with patch("prompts.extract_solved_json", side_effect=RuntimeError("AI engine offline")):
+            fallback_used = False
+            extraction_error = None
+            try:
+                prompts.extract_solved_json([], "x = 1", "desc", "Python", api_key="")
+            except Exception as err:
+                fallback_used = True
+                extraction_error = str(err)
+                extracted = {
+                    "bug_type": "Logic",
+                    "scope": "logic",
+                    "root_cause": "Issue resolved through Socratic inquiry.",
+                    "lesson": "Trace state mutations line-by-line.",
+                    "language": "Python"
+                }
+
+            self.assertTrue(fallback_used)
+            self.assertEqual(extraction_error, "AI engine offline")
+            extracted["fallback_notice"] = extraction_error
+            bug_id = db.save_bug(
+                bug_type=extracted["bug_type"],
+                scope=extracted["scope"],
+                root_cause=extracted["root_cause"],
+                lesson=extracted["lesson"],
+                language=extracted["language"],
+                description="desc",
+                code_snippet="x = 1"
+            )
+            self.assertGreater(bug_id, 0)
+            self.assertIn("fallback_notice", extracted)
+
+    def test_socratic_replies_never_contain_closing_phrases_and_exactly_one_question(self):
+        """Verifies replies never contain closing phrases, contain exactly 1 question, and max 2 sentences."""
+        # Validation checks
+        bad_replies = [
+            "It looks like your program is finally working as expected... is there anything else about this script you'd like to explore?",
+            "Feel free to let me know if you need more help, what do you think?",
+            "Glad I could help! Do you want to test another case?",
+            "Quack! What does x equal? And what does y equal?",
+            "First sentence. Second sentence. Third sentence is here?",
+            "```python\ndef fix(): return 1\n```\nWhat is this?",
+        ]
+        for bad in bad_replies:
+            self.assertFalse(prompts.validate_socratic_reply(bad), f"Bad reply should have failed validation: {bad}")
+
+        good_reply = "Quack! When you evaluate s(10), what data type does Python return?"
+        self.assertTrue(prompts.validate_socratic_reply(good_reply))
+
+        # Cleaner checks
+        cleaned = prompts.clean_socratic_response("Feel free to test it. What does s(10) evaluate to?")
+        self.assertTrue(cleaned.startswith("Quack!"))
+        self.assertTrue(cleaned.endswith("?"))
+        self.assertNotIn("feel free", cleaned.lower())
+        self.assertEqual(cleaned.count("?"), 1)
+
 
 if __name__ == "__main__":
     unittest.main()

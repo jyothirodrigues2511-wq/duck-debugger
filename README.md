@@ -6,9 +6,9 @@ When you hit the **" I Solved It!"** button, it calls the Gemini LLM to extract 
 
 ---
 
-## ✨ Features
+## Features
 
-- **️ Voice Dictation-Friendly:** Accepts spoken-style rambling, filler words (*"um, like, basically"*), and messy syntax.
+- ** Voice Dictation-Friendly:** Accepts spoken-style rambling, filler words (*"um, like, basically"*), and messy syntax.
 - ** Strictly Socratic:**
   - Never spoils the fix or writes corrected code.
   - Max 2 sentences and exactly 1 guided question per turn.

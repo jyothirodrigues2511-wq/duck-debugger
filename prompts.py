@@ -42,6 +42,7 @@ STRICT SAFETY & BEHAVIOR RULES (ABSOLUTE - NO EXCEPTIONS):
 6. If the user seems stuck (turn count >= 3), give a slightly stronger guided conceptual clue pointing toward the suspicious line or concept, but STILL end with exactly ONE question and NO code fix.
 7. Handle messy voice-dictated input gracefully: ignore filler words ("um", "like", "uh", "you know", "and then", "so basically"), extract the core symptom, and focus on the logical discrepancy.
 8. Output must strictly contain at most 2 sentences and exactly one question mark (?).
+9. NEVER congratulate in place of asking, NEVER say "anything else you'd like to explore", never say "feel free to", "let me know", "is there anything else", and NEVER end the session on your own. Every duck reply must be strictly ONE question of at most two sentences that moves toward the root cause or takeaway lesson. If the user states that their code is working, ask only what the root cause was.
 """
 
 EXTRACTION_SYSTEM_PROMPT = """You are an expert code analyst for Duck Debugger.
@@ -71,57 +72,136 @@ Include:
 Do NOT give away the answer or fix!
 """
 
-def detect_user_breakthrough(text: Optional[str]) -> bool:
+ROOT_CAUSE_QUESTION = "Quack! Nice. In one sentence, what was the root cause?"
+
+DISALLOWED_CLOSING_PHRASES = (
+    "anything else",
+    "feel free",
+    "let me know",
+    "glad i could help",
+    "glad to help",
+    "happy to help",
+    "explore further",
+    "explore anything",
+    "working as expected",
+    "good luck",
+    "congratulations",
+)
+
+SUCCESS_PHRASES = [
+    re.compile(r"\b(?:it\x27s|it is|it)\s+works?(?:\s+(?:now|perfectly|great|fine|again))?\b", re.I),
+    re.compile(r"\b(?:it\x27s|it is)\s+working(?:\s+(?:now|perfectly|great|fine|again))?\b", re.I),
+    re.compile(r"\bworking\s+perfectly\b", re.I),
+    re.compile(r"\bworks\s+perfectly\b", re.I),
+    re.compile(r"\beverything\s+(?:is\s+)?working(?:\s+(?:now|perfectly|fine))?\b", re.I),
+    re.compile(r"\beverything\s+works?(?:\s+(?:now|perfectly))?\b", re.I),
+    re.compile(r"\b(?:i\x27ve\s+|i\s+have\s+|i\s+)?fixed\s+it(?:\s+now)?\b", re.I),
+    re.compile(r"\b(?:it\x27s|it is)\s+fixed\b", re.I),
+    re.compile(r"^\s*(?:yes,?\s*)?(?:finally\s+)?fixed[.!]*\s*$", re.I),
+    re.compile(r"\b(?:i\x27ve\s+|i\s+have\s+|i\s+)?solved\s+it(?:\s+now)?\b", re.I),
+    re.compile(r"\b(?:it\x27s|it is)\s+solved\b", re.I),
+    re.compile(r"^\s*(?:yes,?\s*)?(?:finally\s+)?solved[.!]*\s*$", re.I),
+    re.compile(r"\ball\s+good(?:\s+now)?\b", re.I),
+    re.compile(r"\bgot\s+it\s+(?:fixed|working|solved)\b", re.I),
+]
+
+CAUSE_PHRASES = [
+    re.compile(r"\bthe\s+(problem|issue|bug|cause|error|fault|mistake)\s+was\b", re.I),
+    re.compile(r"\bi\s+(never|didn\x27t|didnt)\s+define(d)?\b", re.I),
+    re.compile(r"\bi\s+forgot\s+to\b", re.I),
+    re.compile(r"\bi\s+missed\b", re.I),
+    re.compile(r"\bthat\s+(was|is)\s+it\b", re.I),
+    re.compile(r"\b(now\s+)?i\s+get\s+it(\s+now)?\b", re.I),
+    re.compile(r"\boh\s+i\s+see\b", re.I),
+    re.compile(r"\b(now\s+)?it\s+makes\s+sense(\s+now)?\b", re.I),
+    re.compile(r"\bmakes\s+sense\s+now\b", re.I),
+    re.compile(r"\baha\b", re.I),
+    re.compile(r"\beureka\b", re.I),
+    re.compile(r"\bthat(\x27s| is)\s+(the|my)\s+(bug|issue|problem|error|mistake)\b", re.I),
+    re.compile(r"\b(now\s+)?i\s+(see|found|spotted|understand)\s+(the|my)\s+(bug|issue|problem|error|mistake)\b", re.I),
+    re.compile(r"\b(now\s+)?i\s+understand\s+(what\x27s\s+wrong|what\s+happened|why)\b", re.I),
+    re.compile(r"\bi\s+(finally\s+)?(figured|worked)\s+it\s+out\b", re.I),
+    re.compile(r"\b(got|solved|fixed)\s+it\b", re.I),
+    re.compile(r"\bi\s+found\s+it\b", re.I),
+    re.compile(r"\bbecause\s+[a-zA-Z0-9_]+\s*(was|is|returns?|\(|\=)\b", re.I),
+]
+
+NEGATION_PATTERNS = [
+    re.compile(r"\bnot\s+working\b", re.I),
+    re.compile(r"\bstill\s+not\s+working\b", re.I),
+    re.compile(r"\bdoesn\x27t\s+work\b", re.I),
+    re.compile(r"\bdoesnt\s+work\b", re.I),
+    re.compile(r"\bdoes\s+not\s+work\b", re.I),
+    re.compile(r"\bhaven\x27t\s+found(\s+it)?\b", re.I),
+    re.compile(r"\bhavent\s+found(\s+it)?\b", re.I),
+    re.compile(r"\bhave\s+not\s+found(\s+it)?\b", re.I),
+    re.compile(r"\bcan\x27t\s+see(\s+it)?(\s+yet)?\b", re.I),
+    re.compile(r"\bcant\s+see(\s+it)?(\s+yet)?\b", re.I),
+    re.compile(r"\bcannot\s+see(\s+it)?(\s+yet)?\b", re.I),
+    re.compile(r"\bnot\s+fixed\b", re.I),
+    re.compile(r"\bstill\s+broken\b", re.I),
+    re.compile(r"\bstill\s+(can\x27t|cant|cannot|not|unsure)\b", re.I),
+    re.compile(r"\bdidn\x27t\s+find\b", re.I),
+    re.compile(r"\bdidnt\s+find\b", re.I),
+    re.compile(r"\b(that\x27s|that\s+is)\s+not\s+(the\s+bug|it)\b", re.I),
+    re.compile(r"\bno,\s+that\x27s\s+not\s+it\b", re.I),
+    re.compile(r"\bdon\x27t\s+see\b", re.I),
+    re.compile(r"\bhavent\s+figured\b", re.I),
+    re.compile(r"\bhaven\x27t\s+figured\b", re.I),
+]
+
+
+def is_user_success_without_cause(text: Optional[str]) -> bool:
+    """
+    Returns True if the user's message indicates that the code works / is fixed / is solved,
+    but does NOT name the root cause or bug explanation.
+    """
+    if not text or not isinstance(text, str) or not text.strip():
+        return False
+    raw = text.strip().lower()
+    if raw.endswith("?"):
+        return False
+
+    for np in NEGATION_PATTERNS:
+        if np.search(raw):
+            return False
+
+    if any(cp.search(raw) for cp in CAUSE_PHRASES):
+        return False
+
+    return any(sp.search(raw) for sp in SUCCESS_PHRASES)
+
+
+def detect_user_breakthrough(text: Optional[str], conversation: Optional[List[Dict[str, str]]] = None) -> bool:
     """
     Detects if the user has reached an Aha! moment or discovered the root cause.
-    Properly handles case-insensitivity, punctuation, and clause-level negations
-    (e.g., 'I haven't found it yet' -> False, but 'Haven't found it... wait, AHA! I found it' -> True).
+    Properly handles case-insensitivity, punctuation, and clause-level negations.
+    Also recognizes answers following the duck's root-cause inquiry.
     """
     if not text or not isinstance(text, str) or not text.strip():
         return False
 
     raw = text.strip().lower()
+    if raw.endswith("?"):
+        return False
 
-    # Split into clauses across sentence boundaries and contrastive conjunctions
+    if conversation:
+        last_duck = next((m.get("content", "") for m in reversed(conversation) if m.get("role") == "assistant"), "")
+        if "what was the root cause?" in last_duck.lower():
+            if not any(np.search(raw) for np in NEGATION_PATTERNS) and len(raw) >= 3:
+                return True
+
     clauses = re.split(r'[.!?;:\n]+|(?:\b(?:but|however|wait|although|though)\b)', raw)
-
-    breakthrough_patterns = [
-        re.compile(r'\baha\b'),
-        re.compile(r'\beureka\b'),
-        re.compile(r'\b(i(\x27ve|\x27m| have| am)?\s+)?found (it|the (bug|issue|problem|fix|error|cause))\b'),
-        re.compile(r'\b(now\s+)?i (see|get|understand|spotted|notice|found) (the|my) (bug|issue|problem|error|mistake)\b'),
-        re.compile(r'\bthat(\x27s| is) (the|my) (bug|issue|problem|error|mistake)\b'),
-        re.compile(r'\b(now\s+)?i (see|get|understand) (it|what\x27s wrong|what happened|why)\b'),
-        re.compile(r'\bi (finally\s+)?(figured|worked) it out\b'),
-        re.compile(r'\b(got|solved|fixed) it\b'),
-        re.compile(r'\bnow it makes sense\b'),
-    ]
-
-    negation_patterns = [
-        re.compile(r'\b(not|never|haven\x27t|havent|didn\x27t|didnt|don\x27t|dont|can\x27t|cant|cannot|couldn\x27t|couldnt|hardly|doubt|unsure|still)\b')
-    ]
 
     for clause in clauses:
         c = clause.strip()
         if not c:
             continue
 
-        for bp in breakthrough_patterns:
-            match = bp.search(c)
-            if match:
-                prefix = c[:match.start()]
-                has_negation = False
-                for np in negation_patterns:
-                    if np.search(prefix):
-                        has_negation = True
-                        break
-                if re.search(r'\b(not|never|no)\b', c):
-                    if re.search(r'\b(is|that\x27s|was)\s+(not|never)\b', c):
-                        has_negation = True
-                    if re.search(r'\b(not|never|haven\x27t|havent|didn\x27t|didnt|can\x27t|cant)\s+.*?\b(found|see|solved|get)\b', c):
-                        has_negation = True
-
-                if not has_negation:
+        has_clause_negation = any(np.search(c) for np in NEGATION_PATTERNS)
+        if not has_clause_negation:
+            for cp in CAUSE_PHRASES:
+                if cp.search(c):
                     return True
 
     return False
@@ -356,10 +436,37 @@ def _call_gemini_with_retry(client, model_name: str, contents: str, config: dict
     return None
 
 
+def validate_socratic_reply(raw_text: str) -> bool:
+    """
+    Validates that a Socratic reply strictly adheres to protocol:
+    - Contains exactly one question mark.
+    - Contains at most 2 sentences.
+    - Does not include markdown code blocks.
+    - Does not include conversational closing or congratulatory exit phrases.
+    """
+    if not raw_text or not isinstance(raw_text, str):
+        return False
+    raw = raw_text.strip()
+    if raw.count("?") != 1:
+        return False
+    if "```" in raw:
+        return False
+    lower = raw.lower()
+    for phrase in DISALLOWED_CLOSING_PHRASES:
+        if phrase in lower:
+            return False
+    stripped = re.sub(r"^Quack[!.,]?\s*", "", raw, flags=re.IGNORECASE).strip()
+    parts = [s for s in re.split(r"(?<=[.!?])\s+", stripped) if s.strip()]
+    if len(parts) > 2:
+        return False
+    return True
+
+
 def clean_socratic_response(text: str) -> str:
     """
     Post-processes the Socratic response to enforce strict invariants:
     - Never leaks code blocks (strips markdown ``` blocks).
+    - Removes closing or congratulatory phrases if present.
     - Ensures exactly one question mark.
     - Limits length to at most 2 sentences.
     - Reuses the 'Quack!' opening.
@@ -373,21 +480,28 @@ def clean_socratic_response(text: str) -> str:
         no_code = "Quack! Look closely at the logic: what does this line actually evaluate to at runtime?"
 
     # Split into sentences
-    sentences = re.split(r"(?<=[.!?])\s+", no_code.strip())
+    sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", no_code.strip()) if s.strip()]
+    filtered_sentences = [
+        s for s in sentences
+        if not any(cp in s.lower() for cp in DISALLOWED_CLOSING_PHRASES)
+    ]
+
+    if not filtered_sentences:
+        return "Quack! Looking back at your code, what exact line caused the discrepancy?"
+
     # Keep at most 2 sentences
-    truncated = " ".join(sentences[:2]).strip()
+    truncated = " ".join(filtered_sentences[:2]).strip()
 
     # Ensure it starts with Quack!
     if not truncated.startswith("Quack"):
         truncated = f"Quack! {truncated}"
 
-    # Ensure it ends with a question mark
-    if not truncated.endswith("?"):
-        if "?" in truncated:
-            # Cut at the first question mark
-            truncated = truncated[:truncated.rfind("?") + 1]
-        else:
-            truncated = truncated.rstrip(".!") + "?"
+    # Ensure it ends with exactly one question mark
+    if "?" in truncated:
+        first_q = truncated.find("?")
+        truncated = truncated[:first_q + 1]
+    else:
+        truncated = truncated.rstrip(".!") + "?"
 
     return truncated
 
@@ -411,6 +525,17 @@ def generate_socratic_response(
     safe_desc = (bug_description or "").strip()[:4000]
     safe_messages = messages or []
     safe_language = (language or "Python").strip()
+
+    # If the user reports success without naming a cause, ask the single root-cause question
+    latest_user_msg = next((m.get("content", "") for m in reversed(safe_messages) if m.get("role") == "user"), "")
+    if is_user_success_without_cause(latest_user_msg):
+        if return_details:
+            return {
+                "text": ROOT_CAUSE_QUESTION,
+                "is_fallback": False,
+                "error": None
+            }
+        return ROOT_CAUSE_QUESTION
 
     client = get_gemini_client(api_key)
     failure_reason = None
@@ -453,25 +578,30 @@ Code Snippet:
 
     if client:
         for model in CANDIDATE_GEMINI_MODELS:
-            raw_text = _call_gemini_with_retry(
-                client=client,
-                model_name=model,
-                contents=context_prompt,
-                config={
-                    "system_instruction": full_system,
-                    "temperature": 0.4,
-                    "max_output_tokens": 150,
-                }
-            )
-            if raw_text:
-                cleaned = clean_socratic_response(raw_text)
-                if return_details:
-                    return {
-                        "text": cleaned,
-                        "is_fallback": False,
-                        "error": None
+            # Reject and regenerate (max 2 retries per model)
+            for attempt_idx in range(2):
+                raw_text = _call_gemini_with_retry(
+                    client=client,
+                    model_name=model,
+                    contents=context_prompt,
+                    config={
+                        "system_instruction": full_system,
+                        "temperature": 0.4,
+                        "max_output_tokens": 150,
                     }
-                return cleaned
+                )
+                if raw_text:
+                    if validate_socratic_reply(raw_text):
+                        cleaned = clean_socratic_response(raw_text)
+                        if return_details:
+                            return {
+                                "text": cleaned,
+                                "is_fallback": False,
+                                "error": None
+                            }
+                        return cleaned
+                    else:
+                        logger.warning("Model reply rejected by Socratic post-check (model=%s, attempt=%d): %s", model, attempt_idx + 1, raw_text)
 
         failure_reason = LAST_GEMINI_EXCEPTION or "All candidate Gemini models were unavailable or returned empty output"
     else:

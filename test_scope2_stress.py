@@ -133,7 +133,7 @@ def parse_html(tag: str):
     def test_04_emojis_unicode_and_null_bytes(self):
         """Test emojis, non-ASCII Unicode, and null/control bytes."""
         emoji_desc = " Duck says hello!  Found a nasty bug in  production!"
-        emoji_code = "#  Rocket launcher\nval = '✨' + ''"
+        emoji_code = "#  Rocket launcher\nval = '\u2728' + ''"
         null_code = "def test():\x00\x00\x01\x08 return None"
         null_desc = "Voice text\x00with embedded nulls\x00and ctrl\x02chars"
 
@@ -151,7 +151,7 @@ def parse_html(tag: str):
             bug_type="Off-by-one ",
             scope="logic",
             root_cause="Boundary error \x00 with emoji ",
-            lesson="Always test edge cases ✨",
+            lesson="Always test edge cases \u2728",
             language="Python",
             description=emoji_desc + null_desc,
             code_snippet=emoji_code + null_code

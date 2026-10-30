@@ -565,8 +565,67 @@ def render_socratic_studio():
         st.session_state.ai_offline = True
         st.session_state.ai_offline_error = "No valid GEMINI_API_KEY detected in parameters, st.secrets, or environment"
 
+    # Empty container for dynamic skeleton loading screen
+    skeleton_placeholder = st.empty()
+    has_duck_reply = any(m.get("role") == "assistant" for m in st.session_state.messages)
+
+    # Session Breakthrough Persistence Engine
+    def save_session_breakthrough():
+        if st.session_state.get("solved") and st.session_state.get("solved_record"):
+            return st.session_state.solved_record
+
+        st.session_state.is_saving = True
+        current_key = prompts.resolve_gemini_api_key()
+        fallback_used = False
+        extraction_error = None
+        try:
+            extracted = prompts.extract_solved_json(
+                conversation=st.session_state.messages,
+                code_snippet=st.session_state.code_snippet_input,
+                bug_description=st.session_state.bug_desc_input,
+                language=st.session_state.selected_language,
+                api_key=current_key
+            )
+        except Exception as err:
+            logger.warning("Error extracting JSON, using fallback: %s", err)
+            fallback_used = True
+            extraction_error = str(err)
+            extracted = {
+                "bug_type": "Logic",
+                "scope": "logic",
+                "root_cause": "Issue resolved through Socratic inquiry.",
+                "lesson": "Trace state mutations line-by-line.",
+                "language": st.session_state.selected_language
+            }
+
+        if not current_key or st.session_state.get("ai_offline"):
+            fallback_used = True
+
+        # Best-effort fields from conversation if generic
+        if not extracted.get("root_cause") or extracted.get("root_cause") == "Issue resolved through Socratic inquiry.":
+            last_user = next((m["content"] for m in reversed(st.session_state.messages) if m.get("role") == "user"), "")
+            if last_user and len(last_user.strip()) > 3:
+                extracted["root_cause"] = last_user.strip()[:200]
+
+        bug_id = db.save_bug(
+            bug_type=extracted.get("bug_type", "General"),
+            scope=extracted.get("scope", "logic"),
+            root_cause=extracted.get("root_cause", ""),
+            lesson=extracted.get("lesson", ""),
+            language=extracted.get("language", st.session_state.selected_language),
+            description=st.session_state.bug_desc_input or "Debugging logic in session",
+            code_snippet=st.session_state.code_snippet_input or "# No code snippet provided"
+        )
+        extracted["id"] = bug_id
+        if fallback_used:
+            extracted["fallback_notice"] = extraction_error or "AI engine offline, saved using conversational best-effort analysis."
+        st.session_state.solved_record = extracted
+        st.session_state.solved = True
+        st.session_state.is_saving = False
+        return extracted
+
     # Subheader / Session Status Bar
-    col_sub_left, col_sub_right = st.columns([3, 1], vertical_alignment="center")
+    col_sub_left, col_sub_right = st.columns([2.2, 1.8], vertical_alignment="center")
     with col_sub_left:
         status_mode = "Active" if len(st.session_state.messages) > 0 else "Standby"
         st.markdown(
@@ -606,16 +665,29 @@ def render_socratic_studio():
             )
 
     with col_sub_right:
-        if st.session_state.session_started or len(st.session_state.messages) > 0:
-            if st.button("New Session", key="btn_reset_session", help="Clear current dialectic dialogue"):
-                st.session_state.messages = []
-                st.session_state.session_started = False
-                st.session_state.solved = False
-                st.session_state.turn_count = 0
-                st.session_state.solved_record = None
-                st.session_state.bug_desc_input = ""
-                st.session_state.code_snippet_input = ""
-                st.rerun()
+        col_btn_solve, col_btn_new = st.columns([1.3, 1.0])
+        with col_btn_solve:
+            if has_duck_reply:
+                if st.session_state.solved:
+                    st.button("Saved", key="btn_mark_solved_top", disabled=True, use_container_width=True)
+                else:
+                    if st.button("Mark as Solved", key="btn_mark_solved_top", type="primary", use_container_width=True, help="Mark this debugging session as solved and record telemetry"):
+                        skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                        save_session_breakthrough()
+                        skeleton_placeholder.empty()
+                        st.rerun()
+
+        with col_btn_new:
+            if st.session_state.session_started or len(st.session_state.messages) > 0:
+                if st.button("New Session", key="btn_reset_session", use_container_width=True, help="Clear current dialectic dialogue"):
+                    st.session_state.messages = []
+                    st.session_state.session_started = False
+                    st.session_state.solved = False
+                    st.session_state.turn_count = 0
+                    st.session_state.solved_record = None
+                    st.session_state.bug_desc_input = ""
+                    st.session_state.code_snippet_input = ""
+                    st.rerun()
 
     # Two-Column Main Layout
     col_left, col_right = st.columns([1.1, 0.9], gap="large")
@@ -690,9 +762,6 @@ def render_socratic_studio():
             height=145
         )
 
-    # Empty container for dynamic skeleton loading screen
-    skeleton_placeholder = st.empty()
-
     # Socratic Turn Execution Engine
     def execute_socratic_turn(user_followup=None):
         st.session_state.session_started = True
@@ -710,43 +779,17 @@ def render_socratic_studio():
         safe_desc = st.session_state.bug_desc_input or "Debugging logic in session"
         safe_code = st.session_state.code_snippet_input or "# No code snippet provided"
 
-        # Check for user breakthrough
-        if user_followup and prompts.detect_user_breakthrough(user_followup):
-            st.session_state.is_saving = True
-            skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
-            current_key = prompts.resolve_gemini_api_key()
-            try:
-                extracted = prompts.extract_solved_json(
-                    conversation=st.session_state.messages,
-                    code_snippet=st.session_state.code_snippet_input,
-                    bug_description=st.session_state.bug_desc_input,
-                    language=st.session_state.selected_language,
-                    api_key=current_key
-                )
-            except Exception as err:
-                logger.warning("Error extracting JSON, using fallback: %s", err)
-                extracted = {
-                    "bug_type": "Logic",
-                    "scope": "logic",
-                    "root_cause": "Issue resolved through Socratic inquiry.",
-                    "lesson": "Trace state mutations line-by-line.",
-                    "language": st.session_state.selected_language
-                }
-            bug_id = db.save_bug(
-                bug_type=extracted.get("bug_type", "General"),
-                scope=extracted.get("scope", "logic"),
-                root_cause=extracted.get("root_cause", ""),
-                lesson=extracted.get("lesson", ""),
-                language=extracted.get("language", st.session_state.selected_language),
-                description=st.session_state.bug_desc_input,
-                code_snippet=st.session_state.code_snippet_input
-            )
-            extracted["id"] = bug_id
-            st.session_state.solved_record = extracted
-            st.session_state.solved = True
-            st.session_state.is_saving = False
-            skeleton_placeholder.empty()
-            return
+        # Check for user breakthrough or success without cause
+        if user_followup:
+            if prompts.is_user_success_without_cause(user_followup):
+                st.session_state.messages.append({"role": "assistant", "content": prompts.ROOT_CAUSE_QUESTION})
+                return
+
+            if prompts.detect_user_breakthrough(user_followup, st.session_state.messages):
+                skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                save_session_breakthrough()
+                skeleton_placeholder.empty()
+                return
 
         # Trigger Skeleton Loading Screen exclusively during active synthesis
         skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Socratic Engine Syncing..."), unsafe_allow_html=True)
@@ -849,6 +892,13 @@ def render_socratic_studio():
         # Breakthrough Solved Card
         if st.session_state.solved and st.session_state.solved_record:
             rec = st.session_state.solved_record
+            fallback_html = ""
+            if rec.get("fallback_notice"):
+                fallback_html = f"""
+                <div style="font-size:12px; color:#fca5a5; background:rgba(239,68,68,0.12); padding:8px 12px; border-radius:8px; border:1px solid rgba(239,68,68,0.35); font-family:'JetBrains Mono'; margin-bottom:12px;">
+                  Notice: {html.escape(rec['fallback_notice'])}
+                </div>
+                """
             st.markdown(
                 f"""
                 <div class="breakthrough-box hover-lift">
@@ -861,8 +911,12 @@ def render_socratic_studio():
                         Anomaly #{rec.get('id', '8942')} Telemetry Logged
                       </span>
                     </div>
+                    {fallback_html}
                     <div style="font-size:20px; font-weight:700; color:#ffffff;">
                       Aha! Moment Discovered
+                    </div>
+                    <div style="font-size:13px; color:#e0b6ff; font-family:'JetBrains Mono';">
+                      <strong>Bug Type:</strong> {html.escape(rec.get('bug_type', 'Logic'))} ({html.escape(rec.get('language', st.session_state.selected_language))})
                     </div>
                     <div style="font-size:14px; color:#dbe1ff; line-height:1.6;">
                       <strong>Root Cause:</strong> {html.escape(rec.get('root_cause', 'Resolved'))}
@@ -881,6 +935,16 @@ def render_socratic_studio():
                 """,
                 unsafe_allow_html=True
             )
+
+        # Feed Mark as Solved action button
+        if has_duck_reply and not st.session_state.solved:
+            solve_feed_l, solve_feed_r = st.columns([2.5, 1.5])
+            with solve_feed_r:
+                if st.button("Mark as Solved", key="btn_mark_solved_feed", type="primary", use_container_width=True, help="Mark this debugging session as solved"):
+                    skeleton_placeholder.markdown(render_full_skeleton_screen("socratic-studio.duck", "Synthesizing Telemetry & Post-Mortem..."), unsafe_allow_html=True)
+                    save_session_breakthrough()
+                    skeleton_placeholder.empty()
+                    st.rerun()
 
     # Chat Input Box
     if not st.session_state.solved:
