@@ -1211,37 +1211,107 @@ def render_analytics(time_filter: Optional[str] = None):
         banner_desc = "No debugging telemetry recorded in SQLite yet. Complete a Socratic session to populate analytics."
 
     # Pill styles for active filter
-    pill_30d_class = (
-        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+    pill_30d_style = (
+        "background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35); font-weight:600;"
         if active_time_label == "Last 30 Days"
-        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+        else "color:#d0c2d5; font-weight:500; background:transparent;"
     )
-    pill_quarter_class = (
-        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+    pill_quarter_style = (
+        "background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35); font-weight:600;"
         if active_time_label == "This Quarter"
-        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+        else "color:#d0c2d5; font-weight:500; background:transparent;"
     )
-    pill_all_class = (
-        "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]"
+    pill_all_style = (
+        "background:#9d4edd; color:#ffffff; box-shadow:0 0 16px rgba(157,78,221,0.35); font-weight:600;"
         if active_time_label == "All Time"
-        else "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105"
+        else "color:#d0c2d5; font-weight:500; background:transparent;"
     )
 
-    # Top-Level Streamlit Action Header
-    col_an_header, col_an_actions = st.columns([2.5, 1.5], vertical_alignment="center")
-    with col_an_header:
+    # Top-Level Streamlit Header: Page Title rendered ONCE
+    render_html_block(
+        """
+        <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; background:#212942; color:#e0b6ff;">
+              <span class="material-symbols-outlined" style="font-size:18px;">query_stats</span>
+            </span>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:#e0b6ff; font-weight:600;">Intelligence Telemetry</span>
+            <span style="display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border-radius:9999px; background:#212942; color:#d0c2d5; font-size:11px; font-family:'JetBrains Mono', monospace;">
+              <span style="width:6px; height:6px; border-radius:9999px; background:#34d399;"></span>
+              Sync: SQLite Active
+            </span>
+          </div>
+          <h1 style="font-size:1.85rem; font-weight:700; color:#dbe1ff; margin:6px 0 2px 0; letter-spacing:-0.02em;">
+            Debugging Intelligence &amp; Weak Spot Analytics
+          </h1>
+          <p style="color:#d0c2d5; font-size:13px; margin:0; max-width:800px; line-height:1.5;">
+            Systematic telemetry capturing your recurring logic anomalies, Socratic breakdown timeframes, and targeted algorithmic training vectors.
+          </p>
+        </div>
+        """
+    )
+
+    # Filter Controls and Export Report Row
+    col_filters, col_export = st.columns([3, 1], vertical_alignment="center")
+    with col_filters:
         render_html_block(
-            """
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-              <span style="font-size:1.15rem; font-weight:700; color:#dbe1ff;">Debugging Intelligence &amp; Weak Spot Analytics</span>
+            f"""
+            <div style="display:flex; align-items:center; gap:6px; background:#131a33; border:1px solid #2c344d; padding:4px 6px; border-radius:12px; width:fit-content;">
+              <a href="/?view=analytics&range=30d" target="_self" class="hover-pill" style="padding:6px 14px; border-radius:8px; font-size:12px; text-decoration:none; transition:all 0.2s ease; {pill_30d_style}">Last 30 Days</a>
+              <a href="/?view=analytics&range=quarter" target="_self" class="hover-pill" style="padding:6px 14px; border-radius:8px; font-size:12px; text-decoration:none; transition:all 0.2s ease; {pill_quarter_style}">This Quarter</a>
+              <a href="/?view=analytics&range=all" target="_self" class="hover-pill" style="padding:6px 14px; border-radius:8px; font-size:12px; text-decoration:none; transition:all 0.2s ease; {pill_all_style}">All Time</a>
             </div>
             """
         )
-    with col_an_actions:
-        if st.button("Generate Practice Problem", key="btn_practice_top_level", type="primary", use_container_width=True, help="Synthesize targeted practice challenge based on your weak spots"):
-            st.session_state.show_practice_modal = True
-            st.session_state.practice_data = None
-            st.rerun()
+    with col_export:
+        csv_data = db.export_bugs_csv(time_range=filter_param)
+        st.download_button(
+            label="Export Report",
+            data=csv_data,
+            file_name=f"duck_debugger_telemetry_{filter_param}.csv",
+            mime="text/csv",
+            key="btn_export_report",
+            use_container_width=True,
+        )
+
+    # Weekly Weak Spot Hero Banner Card
+    render_html_block(
+        f"""
+        <div style="position:relative; overflow:hidden; border-radius:16px; background:#171e37; border:1px solid #2c344d; padding:24px 28px; margin: 18px 0 12px 0; box-shadow:0 8px 32px rgba(5,13,37,0.5);">
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:9999px; background:#93000a; color:#ffdad6; font-size:11px; font-weight:700; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">
+                <span class="material-symbols-outlined" style="font-size:13px;">crisis_alert</span>
+                Critical Focus Vector
+              </span>
+              <span style="font-size:11px; color:#e0b6ff; font-family:'JetBrains Mono', monospace; letter-spacing:0.05em;">{banner_incidents}</span>
+            </div>
+            <h2 style="font-size:1.45rem; font-weight:700; color:#dbe1ff; margin:2px 0 0 0;">
+              {banner_title}
+            </h2>
+            <p style="font-size:13.5px; color:#d0c2d5; line-height:1.55; margin:0;">
+              {banner_desc}
+            </p>
+            <div style="display:flex; flex-wrap:wrap; align-items:center; gap:20px; margin-top:4px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#d0c2d5;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#9d4edd;">psychology</span>
+                <span>Cognitive Trap: <strong style="color:#dbe1ff;">{cognitive_trap_str}</strong></span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="material-symbols-outlined" style="font-size:16px; color:#e0b6ff;">timer</span>
+                <span>Recovery Cost: <strong style="color:#dbe1ff;">{recovery_cost_str}</strong></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        """
+    )
+
+    # Exactly ONE Generate Practice Problem Button: Full Width, No Stray Caption
+    if st.button("Generate Practice Problem", key="btn_practice_top_level", type="primary", use_container_width=True):
+        st.session_state.show_practice_modal = True
+        st.session_state.practice_data = None
+        st.rerun()
 
     # Trigger Dialog Modal if active
     if st.session_state.get("show_practice_modal"):
@@ -1418,86 +1488,7 @@ def render_analytics(time_filter: Optional[str] = None):
       </script>
     </head>
     <body class="bg-background font-body-md text-body-md text-on-surface antialiased">
-      <main class="w-full px-2 max-w-7xl mx-auto flex flex-col gap-8 pb-16 pt-2">
-        <!-- Top Meta Control / Header Bar -->
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div class="flex flex-col gap-1">
-            <div class="flex items-center gap-2">
-              <span class="p-1 rounded-lg bg-surface-container-high text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-[18px]">query_stats</span>
-              </span>
-              <span class="font-label-sm text-label-sm uppercase tracking-wider text-primary">Intelligence Telemetry</span>
-              <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant text-[11px] font-mono">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                Sync: SQLite Active
-              </span>
-            </div>
-            <h1 class="text-3xl font-bold text-on-surface tracking-tight">
-              Debugging Intelligence &amp; Weak Spot Analytics
-            </h1>
-            <p class="text-on-surface-variant text-sm max-w-2xl">
-              Systematic telemetry capturing your recurring logic anomalies, Socratic breakdown timeframes, and targeted algorithmic training vectors.
-            </p>
-          </div>
-
-          <!-- Quick Filter Bar -->
-          <div class="flex flex-wrap items-center gap-2 bg-surface-container-low p-1.5 rounded-xl shadow-sm">
-            <div class="inline-flex rounded-lg bg-surface-container-lowest p-0.5">
-              <button class="{pill_30d_class}" data-range="30d" type="button">Last 30 Days</button>
-              <button class="{pill_quarter_class}" data-range="quarter" type="button">This Quarter</button>
-              <button class="{pill_all_class}" data-range="all" type="button">All Time</button>
-            </div>
-            <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface text-xs font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] active:scale-95" onclick="alert('Exporting telemetry snapshot as JSON...')" type="button">
-              <span class="material-symbols-outlined text-[15px] text-primary">ios_share</span>
-              <span>Export Report</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Weekly Weak Spot Hero Banner Card -->
-        <div class="relative overflow-hidden rounded-2xl bg-surface-container p-6 sm:p-8 shadow-xl border border-surface-container-highest transition-all duration-200 hover:shadow-[0_0_24px_rgba(157,78,221,0.25)]">
-          <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-primary-container/20 blur-3xl pointer-events-none"></div>
-          <div class="absolute -bottom-24 -left-24 w-80 h-80 rounded-full bg-secondary-container/25 blur-3xl pointer-events-none"></div>
-          <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-            <div class="flex flex-col gap-2 max-w-3xl">
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-error-container text-on-error-container text-xs font-semibold">
-                  <span class="material-symbols-outlined text-[14px]">crisis_alert</span>
-                  Critical Focus Vector
-                </span>
-                <span class="text-xs text-primary font-mono tracking-wider">{banner_incidents}</span>
-              </div>
-              <h2 class="text-2xl font-bold text-on-surface">
-                {banner_title}
-              </h2>
-              <p class="text-base text-on-surface-variant leading-relaxed">
-                {banner_desc}
-              </p>
-              <div class="flex flex-wrap items-center gap-x-6 gap-y-2 mt-1 font-mono text-xs text-on-surface-variant">
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-primary text-[16px]">psychology</span>
-                  <span>Cognitive Trap: <span class="text-on-surface font-semibold">{cognitive_trap_str}</span></span>
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <span class="material-symbols-outlined text-tertiary text-[16px]">timer</span>
-                  <span>Recovery Cost: <span class="text-on-surface font-semibold">{recovery_cost_str}</span></span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex flex-col sm:flex-row lg:flex-col items-stretch gap-3 shrink-0 min-w-[240px]">
-              <a class="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary-container text-on-primary-container hover:bg-secondary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_24px_rgba(157,78,221,0.4)] text-sm font-semibold cursor-pointer active:scale-95" href="/?view=analytics&practice=1" style="text-decoration:none;" target="_top">
-                <span class="material-symbols-outlined text-[18px]">extension</span>
-                <span>Generate Practice Problem</span>
-              </a>
-              <button class="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-surface-container-high hover:bg-surface-bright text-on-surface text-sm font-medium transition-all duration-200 hover:scale-105 hover:shadow-[0_0_20px_rgba(157,78,221,0.3)] cursor-pointer active:scale-95" data-spot="{html.escape(top_spot)}" onclick="filterByWeakSpot(this.getAttribute('data-spot'))" type="button">
-                <span class="material-symbols-outlined text-[18px] text-primary">record_voice_over</span>
-                <span>Review Socratic Transcripts ({top_count})</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <main class="w-full px-2 max-w-7xl mx-auto flex flex-col gap-6 pb-16 pt-2">
         <!-- Analytics Metrics & Data Visualization Bento Grid with Hover Animations -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1710,8 +1701,9 @@ def render_analytics(time_filter: Optional[str] = None):
           const pills = document.querySelectorAll('.type-pill');
           
           pills.forEach(pill => {{
-            if (pill.innerText.trim().toLowerCase().includes(type.toLowerCase()) || 
-               (type === 'All' && pill.innerText.trim() === 'All Types')) {{
+            const pText = pill.innerText.trim().toLowerCase();
+            const tLow = type.toLowerCase();
+            if (pText.includes(tLow) || tLow.includes(pText) || (type === 'All' && pText === 'all types')) {{
               pill.className = "type-pill px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-semibold transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]";
             }} else {{
               pill.className = "type-pill px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface-variant transition-all duration-200 hover:scale-105";
@@ -1719,8 +1711,9 @@ def render_analytics(time_filter: Optional[str] = None):
           }});
 
           rows.forEach(row => {{
-            const rowType = row.getAttribute('data-type');
-            if (type === 'All' || rowType === type) {{
+            const rowType = (row.getAttribute('data-type') || '').toLowerCase();
+            const tLow = type.toLowerCase();
+            if (type === 'All' || rowType.includes(tLow) || tLow.includes(rowType)) {{
               row.style.display = '';
             }} else {{
               row.style.display = 'none';
@@ -1766,21 +1759,12 @@ def render_analytics(time_filter: Optional[str] = None):
           const modal = document.getElementById('inspector-modal');
           if (modal) modal.classList.add('hidden');
         }}
-
-        document.querySelectorAll('.date-pill').forEach(btn => {{
-          btn.addEventListener('click', () => {{
-            document.querySelectorAll('.date-pill').forEach(b => {{
-              b.className = "date-pill px-3 py-1 rounded text-xs font-semibold text-on-surface-variant hover:text-on-surface transition-all duration-200 hover:scale-105";
-            }});
-            btn.className = "date-pill px-3 py-1 rounded text-xs font-semibold bg-primary-container text-on-primary-container transition-all duration-200 hover:scale-105 hover:shadow-[0_0_16px_rgba(157,78,221,0.35)]";
-          }});
-        }});
       </script>
     </body>
     </html>
     """
 
-    components.html(analytics_html, height=1350, scrolling=True)
+    components.html(analytics_html, height=1050, scrolling=True)
 
 # --- Render Selected View ---
 if active_view == "analytics":

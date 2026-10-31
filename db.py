@@ -8,6 +8,8 @@ import sqlite3
 import os
 import threading
 import logging
+import csv
+import io
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
@@ -653,3 +655,43 @@ def get_bug_stats(time_range: Optional[str] = None) -> Dict[str, Any]:
             "state_pct": 0,
             "has_data": False
         }
+
+
+def export_bugs_csv(time_range: Optional[str] = None) -> str:
+    """
+    Exports all logged bugs (optionally filtered by time_range) as a CSV string.
+    Includes bug identifier, timestamp, language, category, scope, root cause, and lesson.
+    """
+    bugs = get_all_bugs(time_range=time_range)
+    output = io.StringIO()
+    writer = csv.writer(output, quoting=csv.QUOTE_MINIMAL)
+    writer.writerow([
+        "ID",
+        "Timestamp",
+        "Language",
+        "Bug Type",
+        "Scope",
+        "Root Cause",
+        "Lesson",
+        "Turn Count",
+        "Duration (s)",
+        "Voice Description",
+        "Code Snippet"
+    ])
+    for b in bugs:
+        code_id = f"DBG-{8900 + b['id']}"
+        writer.writerow([
+            code_id,
+            b.get("timestamp") or "",
+            b.get("language") or "",
+            b.get("bug_type") or "",
+            b.get("scope") or "",
+            b.get("root_cause") or "",
+            b.get("lesson") or "",
+            b.get("turn_count") or 1,
+            b.get("duration_seconds") or 0.0,
+            b.get("description") or "",
+            b.get("code_snippet") or ""
+        ])
+    return output.getvalue()
+

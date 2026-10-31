@@ -106,20 +106,35 @@ class TestAnalyticsView(unittest.TestCase):
                     f"Analytics view raised exception on empty db with filter {label}: {at.exception}"
                 )
 
-                # Action button rendered in Streamlit container
-                self.assertIsNotNone(at.button(key="btn_practice_top_level"))
+                # Exactly one Generate Practice Problem button exists
+                practice_btns = [b for b in at.button if "Generate Practice Problem" in b.label]
+                self.assertEqual(len(practice_btns), 1, "Exactly one Generate Practice Problem button must exist")
+                self.assertEqual(practice_btns[0].key, "btn_practice_top_level")
 
-                # Check HTML output rendered
+                # Export report download button exists
+                dl = at.download_button(key="btn_export_report")
+                self.assertIsNotNone(dl, "Export Report download button must exist")
+                self.assertEqual(dl.label, "Export Report")
+
+                # Check HTML output rendered with single title
                 html_values = [h.value for h in at.html]
                 combined_html = "\n".join(html_values)
-                self.assertIn("Debugging Intelligence", combined_html)
+                self.assertIn("Debugging Intelligence &amp; Weak Spot Analytics", combined_html)
 
                 # Check iframe component containing analytics dashboard
                 iframes = [e for e in at.main if getattr(e, "type", None) == "iframe"]
                 self.assertGreater(len(iframes), 0, "Analytics iframe must be rendered")
                 srcdoc = iframes[0].proto.srcdoc
                 self.assertIn("No data yet", srcdoc)
-                self.assertIn("Debugging Intelligence", srcdoc)
+                self.assertIn("Bug Pattern Frequency Matrix", srcdoc)
+
+                # Clicking the practice problem button opens dialog modal
+                practice_btns[0].click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertTrue(at.session_state.get("show_practice_modal"))
+                self.assertIsNotNone(at.session_state.get("practice_data"))
+                self.assertIsNotNone(at.button(key="btn_close_practice_modal"))
+                self.assertIsNotNone(at.button(key="btn_another_practice_modal"))
 
     def test_state_2_seed_bugs_all_time_filters(self):
         """
@@ -150,16 +165,30 @@ class TestAnalyticsView(unittest.TestCase):
                     0,
                     f"Analytics view raised exception on seed db with filter {label}: {at.exception}"
                 )
-                self.assertIsNotNone(at.button(key="btn_practice_top_level"))
+
+                practice_btns = [b for b in at.button if "Generate Practice Problem" in b.label]
+                self.assertEqual(len(practice_btns), 1, "Exactly one Generate Practice Problem button must exist")
+                self.assertEqual(practice_btns[0].key, "btn_practice_top_level")
+
+                dl = at.download_button(key="btn_export_report")
+                self.assertIsNotNone(dl, "Export Report download button must exist")
 
                 combined_html = "\n".join([h.value for h in at.html])
-                self.assertIn("Debugging Intelligence", combined_html)
+                self.assertIn("Debugging Intelligence &amp; Weak Spot Analytics", combined_html)
 
                 iframes = [e for e in at.main if getattr(e, "type", None) == "iframe"]
                 self.assertGreater(len(iframes), 0, "Analytics iframe must be rendered")
                 srcdoc = iframes[0].proto.srcdoc
                 self.assertIn("bugs", srcdoc)
                 self.assertIn("Off-by-one", srcdoc)
+                self.assertIn("Bug Pattern Frequency Matrix", srcdoc)
+
+                practice_btns[0].click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertTrue(at.session_state.get("show_practice_modal"))
+                self.assertIsNotNone(at.session_state.get("practice_data"))
+                self.assertIsNotNone(at.button(key="btn_close_practice_modal"))
+                self.assertIsNotNone(at.button(key="btn_another_practice_modal"))
 
     def test_state_3_older_rows_without_duration_or_turn_count(self):
         """
@@ -237,15 +266,20 @@ class TestAnalyticsView(unittest.TestCase):
                     0,
                     f"Analytics view raised exception on legacy null rows with filter {label}: {at.exception}"
                 )
-                self.assertIsNotNone(at.button(key="btn_practice_top_level"))
+                practice_btns = [b for b in at.button if "Generate Practice Problem" in b.label]
+                self.assertEqual(len(practice_btns), 1, "Exactly one Generate Practice Problem button must exist")
+                self.assertEqual(practice_btns[0].key, "btn_practice_top_level")
+
+                dl = at.download_button(key="btn_export_report")
+                self.assertIsNotNone(dl, "Export Report download button must exist")
 
                 combined_html = "\n".join([h.value for h in at.html])
-                self.assertIn("Debugging Intelligence", combined_html)
+                self.assertIn("Debugging Intelligence &amp; Weak Spot Analytics", combined_html)
 
                 iframes = [e for e in at.main if getattr(e, "type", None) == "iframe"]
                 self.assertGreater(len(iframes), 0, "Analytics iframe must be rendered")
                 srcdoc = iframes[0].proto.srcdoc
-                self.assertIn("Debugging Intelligence", srcdoc)
+                self.assertIn("Bug Pattern Frequency Matrix", srcdoc)
 
     def test_state_4_new_bugs_all_time_filters(self):
         """
@@ -258,7 +292,7 @@ class TestAnalyticsView(unittest.TestCase):
             conn.execute("DELETE FROM bugs;")
             db.seed_initial_data(conn)
 
-        # Add 3 new bugs with specific metrics
+        # Add 2 new bugs with specific metrics
         db.save_bug(
             bug_type="Race Condition",
             scope="concurrency",
@@ -300,16 +334,28 @@ class TestAnalyticsView(unittest.TestCase):
                     0,
                     f"Analytics view raised exception on new bugs db with filter {label}: {at.exception}"
                 )
-                self.assertIsNotNone(at.button(key="btn_practice_top_level"))
+                practice_btns = [b for b in at.button if "Generate Practice Problem" in b.label]
+                self.assertEqual(len(practice_btns), 1, "Exactly one Generate Practice Problem button must exist")
+                self.assertEqual(practice_btns[0].key, "btn_practice_top_level")
+
+                dl = at.download_button(key="btn_export_report")
+                self.assertIsNotNone(dl, "Export Report download button must exist")
 
                 combined_html = "\n".join([h.value for h in at.html])
-                self.assertIn("Debugging Intelligence", combined_html)
+                self.assertIn("Debugging Intelligence &amp; Weak Spot Analytics", combined_html)
 
                 iframes = [e for e in at.main if getattr(e, "type", None) == "iframe"]
                 self.assertGreater(len(iframes), 0, "Analytics iframe must be rendered")
                 srcdoc = iframes[0].proto.srcdoc
-                self.assertIn("Debugging Intelligence", srcdoc)
                 self.assertIn("Race Condition", srcdoc)
+                self.assertIn("Bug Pattern Frequency Matrix", srcdoc)
+
+                practice_btns[0].click().run()
+                self.assertEqual(len(at.exception), 0)
+                self.assertTrue(at.session_state.get("show_practice_modal"))
+                self.assertIsNotNone(at.session_state.get("practice_data"))
+                self.assertIsNotNone(at.button(key="btn_close_practice_modal"))
+                self.assertIsNotNone(at.button(key="btn_another_practice_modal"))
 
     def test_socratic_studio_view_renders_cleanly(self):
         """
