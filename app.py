@@ -104,8 +104,9 @@ render_html_block(
         margin: 0 auto !important;
     }
 
-    div[data-testid="stTextArea"]:has(textarea[aria-label="Code Snippet"]) textarea,
-    textarea[aria-label="Code Snippet"] {
+    /* Scoped Code Snippet Box (key: code_snippet_input) */
+    .st-key-code_snippet_input textarea,
+    div[data-testid="stTextArea"].st-key-code_snippet_input textarea {
         font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
         font-size: 0.92rem !important;
         line-height: 1.5 !important;
@@ -113,10 +114,31 @@ render_html_block(
         min-height: 360px !important;
     }
 
-    div[data-testid="stTextArea"]:has(textarea[aria-label*="dictate with Wispr Flow"]) textarea,
-    textarea[aria-label*="dictate with Wispr Flow"] {
+    /* Scoped Voice Description Box (key: bug_desc_input) */
+    .st-key-bug_desc_input textarea,
+    div[data-testid="stTextArea"].st-key-bug_desc_input textarea {
         resize: vertical !important;
         min-height: 200px !important;
+    }
+
+    /* Compact Bottom Chat Input (st.chat_input) */
+    [data-testid="stChatInput"] {
+        padding-bottom: 0 !important;
+    }
+    [data-testid="stChatInput"] textarea,
+    textarea[data-testid="stChatInputTextArea"] {
+        min-height: 0 !important;
+        max-height: 160px !important;
+        height: auto !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 14px !important;
+        line-height: 1.5 !important;
+        resize: none !important;
+        overflow-y: auto !important;
+    }
+    [data-testid="stChatInput"] button,
+    button[data-testid="stChatInputSubmitButton"] {
+        align-self: center !important;
     }
 
     html, body, [class*="css"] {

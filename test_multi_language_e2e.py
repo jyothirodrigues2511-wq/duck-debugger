@@ -222,12 +222,17 @@ class TestMultiLanguageE2E(unittest.TestCase):
         Code snippet box >= 360px tall, monospace font, resizable.
         Page max-width responsive.
         """
-        at = AppTest.from_file(self.app_path, default_timeout=30).run()
+        at = AppTest.from_file(self.app_path, default_timeout=30)
+        at.query_params["view"] = "studio"
+        at.run()
+        self.assertEqual(len(at.exception), 0, f"Studio view raised exception: {at.exception}")
         desc_area = at.text_area(key="bug_desc_input")
         code_area = at.text_area(key="code_snippet_input")
 
         self.assertIsNotNone(desc_area)
         self.assertIsNotNone(code_area)
+        self.assertGreater(len(at.chat_input), 0, "Chat input must be rendered")
+        self.assertIn("Wispr Flow", at.chat_input[0].placeholder)
 
         # Verify height parameters in app.py
         with open(self.app_path, "r", encoding="utf-8") as f:
@@ -237,12 +242,23 @@ class TestMultiLanguageE2E(unittest.TestCase):
         self.assertIn("key=\"bug_desc_input\",\n            height=210", content)
         self.assertIn("key=\"code_snippet_input\",\n            height=380", content)
 
-        # Check CSS rules
+        # Check CSS rules - strictly scoped, no global textarea min-height
         self.assertIn("max-width: min(1560px, 96vw) !important;", content)
+        self.assertIn(".st-key-code_snippet_input textarea", content)
+        self.assertIn(".st-key-bug_desc_input textarea", content)
         self.assertIn("min-height: 360px !important;", content)
         self.assertIn("min-height: 200px !important;", content)
         self.assertIn("resize: vertical !important;", content)
         self.assertIn("JetBrains Mono", content)
+
+        # Check compact chat input rules
+        self.assertIn("[data-testid=\"stChatInput\"] textarea", content)
+        self.assertIn("max-height: 160px !important;", content)
+        self.assertIn("min-height: 0 !important;", content)
+
+        # Assert no global / un-scoped textarea min-height rules that would leak to chat input
+        self.assertNotIn("textarea[aria-label*=\"dictate with Wispr Flow\"]", content)
+        self.assertNotIn("textarea[aria-label=\"Code Snippet\"]", content)
 
     def test_multi_language_practice_catalog(self):
         """
