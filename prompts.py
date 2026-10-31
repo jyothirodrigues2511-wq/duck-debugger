@@ -684,7 +684,10 @@ Code Snippet:
     context_prompt += "\nRubber Duck (start with 'Quack!', max 2 sentences, exactly 1 question, no fixes):"
 
     if client:
-        for model in CANDIDATE_GEMINI_MODELS:
+        for model_idx, model in enumerate(CANDIDATE_GEMINI_MODELS):
+            if model_idx >= 3:
+                # Fast fallback to offline generator if top candidate models are exhausted
+                break
             # Reject and regenerate (max 2 retries per model)
             for attempt_idx in range(2):
                 raw_text = _call_gemini_with_retry(
@@ -694,12 +697,13 @@ Code Snippet:
                     config={
                         "system_instruction": full_system,
                         "temperature": 0.4,
-                        "max_output_tokens": 250,
+                        "max_output_tokens": 350,
                     }
                 )
                 if raw_text:
-                    if validate_socratic_reply(raw_text):
-                        cleaned = clean_socratic_response(raw_text)
+                    # Clean first to strip code blocks, disallowed phrases, and enforce sentence count
+                    cleaned = clean_socratic_response(raw_text)
+                    if validate_socratic_reply(cleaned):
                         if is_code_only and (turn_count <= 1 or not previous_duck_questions):
                             if not any(k in cleaned.lower() for k in ("expect", "behavior", "output", "supposed", "intend", "do?")):
                                 cleaned = "Quack! What did you expect this code to do?"
@@ -1032,7 +1036,9 @@ Debugging Conversation:
 {history_str}
 """
         raw_text = None
-        for model in CANDIDATE_GEMINI_MODELS:
+        for model_idx, model in enumerate(CANDIDATE_GEMINI_MODELS):
+            if model_idx >= 3:
+                break
             raw_text = _call_gemini_with_retry(
                 client=client,
                 model_name=model,

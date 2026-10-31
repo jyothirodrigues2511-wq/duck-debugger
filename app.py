@@ -13,6 +13,7 @@ import html
 import logging
 import time
 import json
+import base64
 from typing import Optional
 
 # Windows UTF-8 console output fix
@@ -618,7 +619,12 @@ def render_socratic_studio():
     if "code_snippet_input" not in st.session_state:
         st.session_state.code_snippet_input = ""
     if "selected_language" not in st.session_state:
-        st.session_state.selected_language = "Python"
+        url_lang = st.query_params.get("lang")
+        valid_langs = ["Python", "JavaScript", "TypeScript", "Go", "Rust", "C++", "Java"]
+        if url_lang and url_lang in valid_langs:
+            st.session_state.selected_language = url_lang
+        else:
+            st.session_state.selected_language = "Python"
     if "session_start_time" not in st.session_state:
         st.session_state.session_start_time = time.time()
     active_key = prompts.resolve_gemini_api_key()
@@ -768,7 +774,18 @@ def render_socratic_studio():
     # Two-Column Main Layout
     col_left, col_right = st.columns([1.1, 0.9], gap="large")
 
-    duck_avatar_url = "https://lh3.googleusercontent.com/aida-public/AB6AXuCkejLzHkcuV4UxXNv9zVHIia-SYl2uq21ullUgEBqeR9fA1SUEWxZKCqUFXDPMdBmd4krj1OFG-Sggj10GU9-Lbmov-md2Gw_lqAVxKFUA09YmxB4ddTSXkTQ9hX5AJxtJvvTGivZs-Ch_8fxJ8EzTavRoZ46b-0KtpRbu0fAisbYB48n2rBv-ljzxuxh5cAjwKnu4fDww32eKC6jOCP8pAV_WC49Tv1NuaDR9TzczPh0e-y55Mz7_kg"
+    _duck_svg_raw = (
+        "<svg width='44' height='44' viewBox='0 0 44 44' fill='none' xmlns='http://www.w3.org/2000/svg'>"
+        "<rect width='44' height='44' rx='12' fill='#131a33'/>"
+        "<circle cx='22' cy='22' r='14' fill='#9d4edd' fill-opacity='0.25'/>"
+        "<ellipse cx='22' cy='22' rx='10' ry='9' fill='#f59e0b'/>"
+        "<circle cx='25' cy='19' r='1.8' fill='#1e1b4b'/>"
+        "<circle cx='25.5' cy='18.5' r='0.6' fill='#ffffff'/>"
+        "<path d='M28 21 C33 21 34 23 32 25 C30 25.5 28 23.5 28 22 Z' fill='#ea580c'/>"
+        "<ellipse cx='17' cy='24' rx='5' ry='3.5' fill='#d97706'/>"
+        "</svg>"
+    )
+    duck_avatar_uri = f"data:image/svg+xml;base64,{base64.b64encode(_duck_svg_raw.encode('utf-8')).decode('ascii')}"
 
     with col_left:
         render_html_block(
@@ -808,13 +825,16 @@ def render_socratic_studio():
 
         # Language Selector
         languages = ["Python", "JavaScript", "TypeScript", "Go", "Rust", "C++", "Java"]
-        curr_idx = languages.index(st.session_state.selected_language) if st.session_state.selected_language in languages else 0
-        st.session_state.selected_language = st.selectbox(
+        curr_lang = st.session_state.get("selected_language", "Python")
+        curr_idx = languages.index(curr_lang) if curr_lang in languages else 0
+        chosen_lang = st.selectbox(
             "Active Target Language",
             languages,
             index=curr_idx,
+            key="active_target_language_selector",
             label_visibility="collapsed"
         )
+        st.session_state.selected_language = chosen_lang
 
         st.text_area(
             "Code Snippet",
@@ -862,44 +882,45 @@ def render_socratic_studio():
         # Animate waveform exclusively during active generation (loading state)
         render_html_block(render_waveform_card(is_thinking=True), waveform_placeholder)
 
-        current_key = prompts.resolve_gemini_api_key()
         duck_q = None
         try:
-            res = prompts.generate_socratic_response(
-                messages=prospective_messages,
-                code_snippet=safe_code,
-                bug_description=safe_desc,
-                turn_count=prospective_turn,
-                api_key=current_key,
-                language=target_lang,
-                return_details=True
-            )
-            duck_q = res.get("text", "")
-            st.session_state.ai_offline = bool(res.get("is_fallback"))
-            st.session_state.ai_offline_error = res.get("error")
-            if st.session_state.ai_offline:
-                logger.warning("AI engine offline fallback active: %s", st.session_state.ai_offline_error)
-        except Exception as e:
-            logger.error("Gemini Socratic call exception: %s. Using fallback heuristic.", e, exc_info=True)
-            st.session_state.ai_offline = True
-            st.session_state.ai_offline_error = str(e)
-
-        if not duck_q or not duck_q.strip():
+            current_key = prompts.resolve_gemini_api_key()
             try:
-                duck_q = prompts._generate_offline_socratic_response(
-                    prospective_turn,
-                    safe_desc,
-                    safe_code,
-                    prospective_messages,
-                    target_lang
+                res = prompts.generate_socratic_response(
+                    messages=prospective_messages,
+                    code_snippet=safe_code,
+                    bug_description=safe_desc,
+                    turn_count=prospective_turn,
+                    api_key=current_key,
+                    language=target_lang,
+                    return_details=True
                 )
-            except Exception as offline_err:
-                logger.error("Offline Socratic generator error: %s", offline_err)
-                container_word = "slice" if target_lang == "Go" else ("vector or array" if target_lang in ("C++", "Rust") else "array")
-                duck_q = f"Quack! For an {container_word} of length N in {target_lang}, what index does your code evaluate on its final step?"
+                duck_q = res.get("text", "")
+                st.session_state.ai_offline = bool(res.get("is_fallback"))
+                st.session_state.ai_offline_error = res.get("error")
+                if st.session_state.ai_offline:
+                    logger.warning("AI engine offline fallback active: %s", st.session_state.ai_offline_error)
+            except Exception as e:
+                logger.error("Gemini Socratic call exception: %s. Using fallback heuristic.", e, exc_info=True)
+                st.session_state.ai_offline = True
+                st.session_state.ai_offline_error = str(e)
 
-        # Revert waveform to idle resting state after generation completes
-        render_html_block(render_waveform_card(is_thinking=False), waveform_placeholder)
+            if not duck_q or not duck_q.strip():
+                try:
+                    duck_q = prompts._generate_offline_socratic_response(
+                        prospective_turn,
+                        safe_desc,
+                        safe_code,
+                        prospective_messages,
+                        target_lang
+                    )
+                except Exception as offline_err:
+                    logger.error("Offline Socratic generator error: %s", offline_err)
+                    container_word = "slice" if target_lang == "Go" else ("vector or array" if target_lang in ("C++", "Rust") else "array")
+                    duck_q = f"Quack! For an {container_word} of length N in {target_lang}, what index does your code evaluate on its final step?"
+        finally:
+            # Revert waveform to idle resting state after generation completes
+            render_html_block(render_waveform_card(is_thinking=False), waveform_placeholder)
 
         if duck_q and duck_q.strip():
             # Atomically commit messages and turn state
@@ -939,6 +960,10 @@ def render_socratic_studio():
             st.session_state.messages,
             st.session_state.selected_language
         )
+        if not recovery_q or not recovery_q.strip():
+            rec_lang = st.session_state.selected_language or "Python"
+            rec_container = "slice" if rec_lang == "Go" else ("vector or array" if rec_lang in ("C++", "Rust") else "array")
+            recovery_q = f"Quack! For an {rec_container} of length N in {rec_lang}, what index does your code evaluate on its final step?"
         st.session_state.messages.append({"role": "assistant", "content": recovery_q})
         st.session_state.turn_error = None
 
@@ -957,7 +982,7 @@ def render_socratic_studio():
                     f"""
                     <div class="hover-lift" style="display:flex; align-items:flex-start; gap:16px; margin-bottom:16px; border-radius:14px; padding:4px;">
                       <div style="width:44px; height:44px; border-radius:12px; overflow:hidden; border:1px solid #9d4edd; flex-shrink:0; box-shadow:0 0 12px rgba(157,78,221,0.3);">
-                        <img src="{duck_avatar_url}" style="width:100%; height:100%; object-fit:cover;" alt="Duck Mascot"/>
+                        <img src="{duck_avatar_uri}" style="width:100%; height:100%; object-fit:cover;" alt="Duck Mascot"/>
                       </div>
                       <div style="flex:1;">
                         <div style="font-size:12px; color:#9d4edd; font-family:'JetBrains Mono'; font-weight:600; margin-bottom:4px;">
